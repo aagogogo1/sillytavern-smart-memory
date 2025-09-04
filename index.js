@@ -2,7 +2,7 @@ import { extension_settings, getContext, loadExtensionSettings } from "../../../
 import { saveSettingsDebounced, eventSource, event_types } from "../../../../script.js";
 
 // 扩展配置
-const extensionName = "smart-memory";
+const extensionName = "sillytavern-smart-memory";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 
 // 默认设置
@@ -677,5 +677,6 @@ jQuery(async () => {
   console.log("智能总结: 当前版本: 1.0.0");
   console.log("智能总结: 初始设置:", extension_settings[extensionName]);
 });
+
 
 // 已经在上面export了getInjectionContent，不需要重复导出
