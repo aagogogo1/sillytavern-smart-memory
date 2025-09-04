@@ -1,0 +1,92 @@
+<div class="smart-memory-settings">
+    <!-- 智能总结注入器 -->
+    <div class="inline-drawer">
+        <div class="inline-drawer-header inline-drawer-toggle">
+            <b>智能总结注入器</b>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down"></div>
+        </div>
+        <div class="inline-drawer-content" style="display: none;">
+            <div class="flex-container">
+                <!-- AI配置 -->
+                <div class="setting-item">
+                    <label for="smart_memory_api_key">API密钥：</label>
+                    <input id="smart_memory_api_key" type="password" placeholder="输入你的API密钥" />
+                </div>
+                
+                <div class="setting-item">
+                    <label for="smart_memory_api_url">API地址：</label>
+                    <input id="smart_memory_api_url" type="text" value="https://api.openai.com/v1" />
+                </div>
+                
+                <div class="setting-item">
+                    <button id="get_smart_memory_models" class="menu_button" style="min-width: 120px;">获取模型列表</button>
+                    <small style="display: block; margin-top: 5px;">先填写API密钥和地址，然后点击获取</small>
+                </div>
+                
+                <div class="setting-item">
+                    <label for="smart_memory_model">AI模型：</label>
+                    <select id="smart_memory_model">
+                        <option value="">请先获取模型列表</option>
+                    </select>
+                    <small id="model_status" style="color: #888;"></small>
+                </div>
+                
+                <hr class="sysHR">
+                
+                <!-- 扫描设置 -->
+                <div class="setting-item">
+                    <label for="smart_memory_depth">扫描深度（最近几条消息）：</label>
+                    <input type="range" id="smart_memory_depth" min="1" max="20" step="1" value="3" />
+                    <span id="smart_memory_depth_value">3</span>
+                    <small>仅扫描最近的对话消息（包括用户和AI的发言）</small>
+                </div>
+                
+                <div class="setting-item">
+                    <label for="smart_memory_prompt">总结提示词：</label>
+                    <textarea id="smart_memory_prompt" rows="3" placeholder="告诉AI如何总结...">请总结最近的对话要点，提取重要信息和情感变化，保持简洁。</textarea>
+                </div>
+                
+                <hr class="sysHR">
+                
+                <!-- 开关设置 -->
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="smart_memory_enabled" checked />
+                        启用智能总结
+                    </label>
+                </div>
+                
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="smart_memory_auto_update" checked />
+                        自动更新总结
+                    </label>
+                </div>
+                
+                <div class="setting-item" id="update_interval_container">
+                    <label for="smart_memory_update_interval">更新间隔（每N轮对话）：</label>
+                    <input type="range" id="smart_memory_update_interval" min="1" max="10" step="1" value="1" />
+                    <span id="smart_memory_update_interval_value">1</span>
+                    <small>每完成多少轮对话后自动触发总结（一轮 = 用户+AI）</small>
+                </div>
+                
+                <hr class="sysHR">
+                
+                <!-- 注入内容预览 -->
+                <div class="sub-section">
+                    <h4>注入内容预览（可编辑）</h4>
+                    <div class="setting-item">
+                        <textarea id="smart_memory_injection_content" placeholder="AI总结的内容会显示在这里...">暂无总结内容</textarea>
+                        <small>这些内容会与对话预设一起发送给AI</small>
+                    </div>
+                </div>
+                
+                <!-- 按钮 -->
+                <div class="setting-item button-group">
+                    <button id="test_smart_memory" class="menu_button" style="min-width: 100px; margin-right: 10px;">立即总结</button>
+                    <button id="save_smart_memory_settings" class="menu_button" style="min-width: 100px;">保存设置</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

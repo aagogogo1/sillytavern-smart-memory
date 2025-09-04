@@ -1,0 +1,54 @@
+.smart-memory-settings .setting-item {
+    margin: 10px 0;
+}
+
+.smart-memory-settings .setting-item label {
+    display: inline-block;
+    min-width: 150px;
+}
+
+.smart-memory-settings input[type="text"],
+.smart-memory-settings input[type="password"],
+.smart-memory-settings select,
+.smart-memory-settings textarea {
+    width: 100%;
+    max-width: 400px;
+    color: #000000 !important;
+    background-color: #ffffff;
+}
+
+.smart-memory-settings textarea {
+    resize: vertical;
+}
+
+.smart-memory-settings button {
+    margin-right: 10px;
+}
+
+.smart-memory-settings small {
+    display: block;
+    color: #888;
+    margin-top: 5px;
+    font-size: 12px;
+}
+
+#smart_memory_injection_content {
+    background-color: #ffffff !important;
+    border: 1px solid #ccc;
+    font-family: inherit;
+    font-size: inherit;
+    color: #000000 !important;
+    padding: 8px;
+}
+
+/* 确保所有输入框文字清晰可见 */
+.smart-memory-settings input::placeholder {
+    color: #999999;
+}
+
+.smart-memory-settings input:focus,
+.smart-memory-settings textarea:focus,
+.smart-memory-settings select:focus {
+    color: #000000 !important;
+    outline: 1px solid #007acc;
+}
