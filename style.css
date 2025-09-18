@@ -52,3 +52,150 @@
     color: #000000 !important;
     outline: 1px solid #007acc;
 }
+
+/* 弹层样式 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-container {
+    width: 80vw;
+    height: 80vh;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    padding: 5px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #f8f9fa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.modal-title {
+    margin: 0;
+    color: #333;
+    font-size: 18px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.modal-close:hover {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
+.modal-body {
+    flex: 1;
+    padding: 5px;
+    overflow-y: auto;
+    color: #333;
+}
+
+/* statSetting.html 内容样式 */
+.stat-setting-content h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 2px solid #007acc;
+    padding-bottom: 10px;
+}
+
+.setting-section {
+    margin-top: 20px;
+}
+
+.stat-setting-content .setting-item {
+    margin: 15px 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.stat-setting-content .setting-item label {
+    min-width: 120px;
+    margin-right: 10px;
+    color: #555;
+    font-weight: 500;
+}
+
+.stat-setting-content input,
+.stat-setting-content select {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #333;
+    background-color: #fff;
+    min-width: 200px;
+}
+
+.stat-setting-content input:focus,
+.stat-setting-content select:focus {
+    outline: none;
+    border-color: #007acc;
+    box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+.setting-buttons {
+    margin-top: 30px;
+    text-align: right;
+}
+
+.stat-setting-content button {
+    padding: 10px 20px;
+    margin-left: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.btn-primary {
+    background-color: #007acc;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #005a9e;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}

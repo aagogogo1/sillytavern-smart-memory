@@ -577,6 +577,68 @@ async function getModelsList() {
   }
 }
 
+// 显示数值设置弹层
+async function showStatSettingModal() {
+  try {
+    console.log("正在加载数值设置页面...");
+    
+    // 加载statSetting.html内容
+    const response = await $.get(`${extensionFolderPath}/statSetting.html`);
+    
+    // 创建弹层HTML
+    const modalHtml = `
+      <div class="modal-overlay" id="statSettingModal">
+        <div class="modal-container">
+          <div class="modal-header">
+            <h3 class="modal-title">数值设置</h3>
+            <button class="modal-close" id="closeStatModal">&times;</button>
+          </div>
+          <div class="modal-body">
+            ${response}
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // 移除已存在的弹层并添加新的
+    $("#statSettingModal").remove();
+    $("body").append(modalHtml);
+    
+    // 显示弹层
+    $("#statSettingModal").css("display", "flex");
+    
+    // 绑定关闭事件
+    $("#closeStatModal").on("click", closeStatSettingModal);
+    
+    // 点击遮罩层关闭
+    $("#statSettingModal").on("click", function(e) {
+      if (e.target === this) {
+        closeStatSettingModal();
+      }
+    });
+    
+    // ESC键关闭
+    $(document).on("keydown.statModal", function(e) {
+      if (e.key === "Escape") {
+        closeStatSettingModal();
+      }
+    });
+    
+    console.log("数值设置弹层已显示");
+    
+  } catch (error) {
+    console.error("加载数值设置页面失败:", error);
+    toastr.error(`加载数值设置失败: ${error.message}`, "错误");
+  }
+}
+
+// 关闭数值设置弹层
+function closeStatSettingModal() {
+  $("#statSettingModal").remove();
+  $(document).off("keydown.statModal");
+  console.log("数值设置弹层已关闭");
+}
+
 // jQuery加载时初始化
 jQuery(async () => {
   const settingsHtml = await $.get(`${extensionFolderPath}/example.html`);
@@ -613,6 +675,11 @@ jQuery(async () => {
   $("#save_smart_memory_settings").on("click", saveSettings);
   $("#test_smart_memory").on("click", manualSummarize);
   $("#get_smart_memory_models").on("click", getModelsList);
+  
+  // 绑定数值设置弹层事件
+  $("#statSetting").on("click", async function() {
+    await showStatSettingModal();
+  });
   
   // 模型选择更改时保存
   $("#smart_memory_model").on("change", function() {
