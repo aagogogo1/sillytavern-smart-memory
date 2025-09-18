@@ -1,11 +1,11 @@
 {
-  "display_name": "智能总结注入器",
+  "display_name": "动态提示词",
   "loading_order": 1,
   "requires": [],
   "optional": [],
   "js": "index.js",
   "css": "style.css",
-  "author": "沐风的狗子",
+  "author": "AGo",
   "version": "1.0.0",
   "homePage": "https://github.com/hjl2004-10/smart-memory",
   "auto_update": true
