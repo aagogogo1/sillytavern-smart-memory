@@ -324,6 +324,377 @@
     }
 }
 
+/* ===== 角色管理样式 ===== */
+
+/* 角色管理主界面 */
+.avatar-manager-content {
+    padding: 0;
+}
+
+.avatar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #007acc;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.avatar-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 16px;
+    flex: 1;
+    min-width: 120px;
+}
+
+.avatars-container {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.avatars-table-wrapper {
+    overflow-x: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.avatars-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #fff;
+    font-size: 13px;
+}
+
+.avatars-table th,
+.avatars-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+.avatars-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #333;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.avatars-table tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+.name-cell, .othername-cell {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stats-cell {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.actions-cell {
+    white-space: nowrap;
+    width: 120px;
+}
+
+.btn-small {
+    padding: 4px 8px;
+    margin: 0 2px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: background-color 0.2s;
+}
+
+.btn-small.btn-primary {
+    background-color: #007acc;
+    color: white;
+}
+
+.btn-small.btn-primary:hover {
+    background-color: #005a9e;
+}
+
+.btn-small.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-small.btn-danger:hover {
+    background-color: #c82333;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+    font-style: italic;
+}
+
+.avatar-buttons {
+    margin-top: 20px;
+    text-align: center;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.avatar-buttons button {
+    padding: 8px 16px;
+    margin: 0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background-color 0.2s;
+    flex: 1;
+    min-width: 100px;
+    max-width: 150px;
+}
+
+/* 编辑角色弹层样式 */
+.avatar-edit-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.avatar-edit-content {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    width: 90vw;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.avatar-edit-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #f8f9fa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.avatar-edit-header h4 {
+    margin: 0;
+    color: #333;
+    font-size: 16px;
+}
+
+.avatar-edit-body {
+    padding: 20px;
+    flex: 1;
+}
+
+.edit-form-row {
+    margin-bottom: 15px;
+}
+
+.edit-form-row label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #555;
+    font-size: 13px;
+}
+
+.edit-form-row input[type="text"],
+.edit-form-row input[type="number"] {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.stats-editor {
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 10px;
+    background-color: #f9f9f9;
+}
+
+.stat-edit-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.stat-edit-row:last-child {
+    margin-bottom: 0;
+}
+
+.stat-edit-row label {
+    min-width: 80px;
+    margin-bottom: 0;
+    margin-right: 10px;
+    font-size: 12px;
+}
+
+.stat-edit-row .stat-input {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 12px;
+    max-width: 100px;
+}
+
+.avatar-edit-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #e0e0e0;
+    background-color: #f8f9fa;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+.avatar-edit-footer button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background-color 0.2s;
+}
+
+/* 移动端优化 - 角色管理 */
+@media (max-width: 768px) {
+    .avatar-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    
+    .avatar-header h3 {
+        text-align: center;
+        font-size: 15px;
+    }
+    
+    .avatars-table {
+        font-size: 12px;
+    }
+    
+    .avatars-table th,
+    .avatars-table td {
+        padding: 6px 8px;
+    }
+    
+    .name-cell, .othername-cell {
+        max-width: 80px;
+    }
+    
+    .stats-cell {
+        max-width: 120px;
+        font-size: 11px;
+    }
+    
+    .btn-small {
+        padding: 3px 6px;
+        font-size: 10px;
+    }
+    
+    .avatar-buttons {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .avatar-buttons button {
+        flex: none;
+        width: 100%;
+        max-width: none;
+    }
+    
+    .avatar-edit-content {
+        width: 95vw;
+        max-height: 90vh;
+    }
+    
+    .avatar-edit-header,
+    .avatar-edit-body,
+    .avatar-edit-footer {
+        padding: 12px 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .avatars-table-wrapper {
+        font-size: 11px;
+    }
+    
+    .avatars-table th,
+    .avatars-table td {
+        padding: 4px 6px;
+    }
+    
+    .name-cell, .othername-cell {
+        max-width: 60px;
+    }
+    
+    .stats-cell {
+        max-width: 80px;
+        font-size: 10px;
+    }
+    
+    .actions-cell {
+        width: 80px;
+    }
+    
+    .btn-small {
+        padding: 2px 4px;
+        font-size: 9px;
+        margin: 0 1px;
+    }
+    
+    .avatar-edit-content {
+        width: 98vw;
+        max-height: 95vh;
+    }
+    
+    .stat-edit-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 5px;
+    }
+    
+    .stat-edit-row label {
+        min-width: auto;
+        margin-right: 0;
+    }
+    
+    .stat-edit-row .stat-input {
+        max-width: none;
+    }
+}
+
 /* 状态管理界面样式 - 移动端优化 */
 .stat-header {
     display: flex;

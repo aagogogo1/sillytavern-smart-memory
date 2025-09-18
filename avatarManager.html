@@ -1,0 +1,65 @@
+<div class="avatar-manager-content"></div>
+    <div class="avatar-header">
+        <h3>角色状态管理</h3>
+        <button class="btn-primary" id="addAvatarBtn">添加角色</button>
+    </div>
+    
+    <div class="avatars-container" id="avatarsContainer">
+        <div class="avatars-table-wrapper">
+            <table class="avatars-table" id="avatarsTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>名称</th>
+                        <th>别名</th>
+                        <th class="stats-column">状态值</th>
+                        <th class="actions-column">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="avatarsTableBody">
+                    <!-- 角色数据将在这里动态生成 -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <p>暂无角色数据，请点击"添加角色"开始创建</p>
+        </div>
+    </div>
+    
+    <div class="avatar-buttons">
+        <button class="btn-primary" id="saveAvatarsBtn">保存所有更改</button>
+        <button class="btn-secondary" id="exportAvatarsBtn">导出数据</button>
+        <button class="btn-secondary" id="importAvatarsBtn">导入数据</button>
+    </div>
+</div>
+
+<!-- 编辑角色弹层 -->
+<div class="avatar-edit-modal" id="avatarEditModal" style="display: none;">
+    <div class="avatar-edit-content">
+        <div class="avatar-edit-header">
+            <h4 id="editModalTitle">编辑角色</h4>
+            <button class="modal-close" id="closeEditModal">&times;</button>
+        </div>
+        <div class="avatar-edit-body">
+            <div class="edit-form-row">
+                <label>角色名称：</label>
+                <input type="text" id="editAvatarName" placeholder="输入角色名称">
+            </div>
+            <div class="edit-form-row">
+                <label>别名：</label>
+                <input type="text" id="editAvatarOtherName" placeholder="多个别名用逗号分隔">
+            </div>
+            <div class="edit-form-row">
+                <label>状态值：</label>
+                <div class="stats-editor" id="statsEditor">
+                    <!-- 状态值编辑器将在这里动态生成 -->
+                </div>
+            </div>
+        </div>
+        <div class="avatar-edit-footer">
+            <button class="btn-primary" id="saveEditBtn">保存</button>
+            <button class="btn-secondary" id="cancelEditBtn">取消</button>
+        </div>
+    </div>
+</div>
