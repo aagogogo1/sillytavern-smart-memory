@@ -694,6 +694,14 @@ function initStatManager() {
   renderStatsContainer();
   bindStatEvents();
   updatePromptPreview();
+  
+  // 如果已有数据，自动同步到主页面提示词（静默更新，不显示通知）
+  setTimeout(() => {
+    if (statsData && statsData.states && statsData.states.length > 0) {
+      updateMainPromptWithStats();
+      console.log('已自动同步状态监控提示词到主页面');
+    }
+  }, 100);
 }
 
 // 渲染状态容器
@@ -795,12 +803,14 @@ function generatePromptPreview() {
   }
   
   let prompt = "根据最后一条回复内容，统计以下状态值的变化。\n";
-  
+
   const statDescriptions = statsData.states.map(stat => {
     return `${stat.statName}：${stat.prompt}`;
   }).join('，');
   
-  prompt += statDescriptions;
+  prompt += "【" + statDescriptions + "】";
+
+  prompt += "统计结果以下面格式返回: <数据统计>`json格式数据统计`</数据统计>，每个角色一个json对象。仅统计变化量，而不是合计值"
   
   $("#promptPreview").text(prompt);
 }
@@ -808,6 +818,41 @@ function generatePromptPreview() {
 // 更新提示词预览（在数据变化时调用）
 function updatePromptPreview() {
   generatePromptPreview();
+}
+
+// 更新主页面总结提示词中的状态监控部分
+function updateMainPromptWithStats() {
+  // 生成提示词内容
+  const generatedPrompt = $("#promptPreview").text();
+  
+  // 如果有生成的提示词，添加到主页面总结提示词的最下方
+  if (generatedPrompt && generatedPrompt.trim()) {
+    const currentPrompt = $("#smart_memory_prompt").val();
+    
+    // 检查是否已经包含了状态提示词（避免重复添加）
+    const statusPromptMarker = "\n\n=== 状态监控提示词 ===\n";
+    
+    let newPrompt = currentPrompt;
+    
+    // 如果已经存在状态监控提示词，先移除旧的
+    const markerIndex = newPrompt.indexOf(statusPromptMarker);
+    if (markerIndex !== -1) {
+      newPrompt = newPrompt.substring(0, markerIndex);
+    }
+    
+    // 添加新的状态监控提示词
+    newPrompt += statusPromptMarker + generatedPrompt;
+    
+    // 更新主页面的总结提示词
+    $("#smart_memory_prompt").val(newPrompt);
+    
+    // 保存到设置中
+    extension_settings[extensionName].promptTemplate = newPrompt;
+    
+    console.log('已将状态监控提示词添加到总结提示词中:', generatedPrompt);
+    return true;
+  }
+  return false;
 }
 
 // 切换状态面板展开/收起
@@ -926,8 +971,14 @@ function updateTierPrompt(statIndex, tierIndex, value) {
 // 保存状态数据
 function saveStatsData() {
   extension_settings[extensionName].statsData = JSON.parse(JSON.stringify(statsData));
+  
+  // 更新主页面总结提示词中的状态监控部分
+  const promptUpdated = updateMainPromptWithStats();
+  
   saveSettingsDebounced();
-  toastr.success('状态配置已保存', '状态管理');
+  
+  const message = promptUpdated ? '状态配置已保存，提示词已更新' : '状态配置已保存';
+  toastr.success(message, '状态管理');
   console.log('状态数据已保存:', statsData);
 }
 
@@ -978,6 +1029,10 @@ function loadDefaultStats() {
     renderStatsContainer();
     bindStatEvents();
     updatePromptPreview();
+    
+    // 更新主页面总结提示词中的状态监控部分
+    updateMainPromptWithStats();
+    
     toastr.success('已恢复默认配置', '状态管理');
   }
 }
