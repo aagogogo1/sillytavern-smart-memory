@@ -802,7 +802,19 @@ function generatePromptPreview() {
     return;
   }
   
-  let prompt = "根据最后一条回复内容，统计以下状态值的变化。\n";
+  // 生成角色列表字符串
+  let characterList = "";
+  if (avatarsData && avatarsData.length > 0) {
+    characterList = avatarsData.map(avatar => {
+      const name = avatar.name || "未命名";
+      const otherName = avatar.otherName || "";
+      return otherName ? `${name}(${otherName})` : name;
+    }).join(',');
+  }
+  
+  let prompt = characterList 
+    ? `根据最后一条回复内容，统计角色[${characterList}]状态值的变化。\n`
+    : "根据最后一条回复内容，统计以下状态值的变化。\n";
 
   const statDescriptions = statsData.states.map(stat => {
     return `${stat.statName}：${stat.prompt}`;
@@ -1329,6 +1341,11 @@ function addNewAvatar() {
   avatarsData.push(newAvatar);
   renderAvatarsTable();
   
+  // 更新提示词预览（如果状态设置弹层也打开了）
+  if ($("#statSettingModal").is(':visible')) {
+    updatePromptPreview();
+  }
+  
   // 自动打开编辑弹层
   editAvatar(newAvatar.id);
 }
@@ -1428,6 +1445,11 @@ function saveEditAvatar() {
   // 重新渲染表格
   renderAvatarsTable();
   
+  // 更新提示词预览（如果状态设置弹层也打开了）
+  if ($("#statSettingModal").is(':visible')) {
+    updatePromptPreview();
+  }
+  
   // 关闭编辑弹层
   closeEditModal();
   
@@ -1448,6 +1470,12 @@ function deleteAvatar(id) {
   if (confirm(`确定要删除角色"${avatar.name}"吗？`)) {
     avatarsData = avatarsData.filter(a => a.id !== id);
     renderAvatarsTable();
+    
+    // 更新提示词预览（如果状态设置弹层也打开了）
+    if ($("#statSettingModal").is(':visible')) {
+      updatePromptPreview();
+    }
+    
     toastr.success('角色已删除', '角色管理');
   }
 }
@@ -1495,6 +1523,12 @@ function importAvatarsData() {
           avatarsData = importedData;
           nextAvatarId = Math.max(...avatarsData.map(a => a.id), 0) + 1;
           renderAvatarsTable();
+          
+          // 更新提示词预览（如果状态设置弹层也打开了）
+          if ($("#statSettingModal").is(':visible')) {
+            updatePromptPreview();
+          }
+          
           toastr.success('角色数据已导入', '角色管理');
         } else {
           toastr.error('无效的JSON格式', '导入失败');
