@@ -168,18 +168,25 @@
 }
 
 .setting-buttons {
-    margin-top: 30px;
-    text-align: right;
+    margin-top: 20px;
+    text-align: center;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .stat-setting-content button {
-    padding: 10px 20px;
-    margin-left: 10px;
+    padding: 8px 16px;
+    margin: 0;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     transition: background-color 0.2s;
+    flex: 1;
+    min-width: 100px;
+    max-width: 150px;
 }
 
 .btn-primary {
@@ -198,4 +205,435 @@
 
 .btn-secondary:hover {
     background-color: #5a6268;
+}
+
+/* 移动端媒体查询 */
+@media (max-width: 768px) {
+    .modal-container {
+        width: 95vw;
+        height: 90vh;
+        margin: 0 auto;
+    }
+    
+    .modal-header {
+        padding: 12px;
+    }
+    
+    .modal-title {
+        font-size: 16px;
+    }
+    
+    .modal-body {
+        padding: 12px;
+    }
+    
+    .stat-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    
+    .stat-header h3 {
+        text-align: center;
+        font-size: 15px;
+    }
+    
+    .tier-form-grid {
+        grid-template-columns: 1fr 60px 60px;
+        gap: 4px;
+    }
+    
+    .tier-form-grid input[type="number"] {
+        padding: 3px 4px;
+        font-size: 11px;
+    }
+    
+    .setting-buttons {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .stat-setting-content button {
+        flex: none;
+        width: 100%;
+        max-width: none;
+    }
+    
+    .prompt-preview-section {
+        margin: 15px 0;
+        padding: 12px;
+    }
+    
+    .prompt-preview-section h4 {
+        font-size: 13px;
+    }
+    
+    .prompt-preview-content {
+        padding: 10px;
+        font-size: 11px;
+        max-height: 100px;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-container {
+        width: 98vw;
+        height: 95vh;
+    }
+    
+    .tier-form-grid {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+    
+    .tier-form-grid > div {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .tier-form-grid label {
+        min-width: 50px;
+        margin-bottom: 0;
+        font-size: 10px;
+    }
+    
+    .stat-panel-title {
+        font-size: 13px;
+    }
+    
+    .tiers-header h4 {
+        font-size: 13px;
+    }
+    
+    .prompt-preview-section {
+        margin: 10px 0;
+        padding: 8px;
+    }
+    
+    .prompt-preview-section h4 {
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+    
+    .prompt-preview-content {
+        padding: 8px;
+        font-size: 10px;
+        max-height: 80px;
+        min-height: 30px;
+    }
+}
+
+/* 状态管理界面样式 - 移动端优化 */
+.stat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #007acc;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.stat-header h3 {
+    margin: 0;
+    font-size: 16px;
+    flex: 1;
+    min-width: 120px;
+}
+
+.stats-container {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 5px 0;
+}
+
+/* 状态面板样式 - 紧凑版 */
+.stat-panel {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    background-color: #f9f9f9;
+}
+
+.stat-panel-header {
+    background-color: #f5f5f5;
+    padding: 8px 12px;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    min-height: 36px;
+}
+
+.stat-panel-header:hover {
+    background-color: #e9e9e9;
+}
+
+.stat-panel-title {
+    font-weight: bold;
+    color: #333;
+    margin: 0;
+    font-size: 14px;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 10px;
+}
+
+.stat-panel-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.stat-panel-toggle {
+    font-size: 12px;
+    color: #666;
+    transition: transform 0.2s;
+    width: 16px;
+    text-align: center;
+}
+
+.stat-panel-toggle.expanded {
+    transform: rotate(180deg);
+}
+
+.stat-delete-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 3px 6px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+.stat-delete-btn:hover {
+    background: #c82333;
+}
+
+.stat-panel-content {
+    padding: 12px;
+    display: none;
+}
+
+.stat-panel-content.expanded {
+    display: block;
+}
+
+/* 状态基本设置样式 - 紧凑版 */
+.stat-basic-settings {
+    margin-bottom: 15px;
+}
+
+.stat-form-row {
+    margin-bottom: 12px;
+}
+
+.stat-form-row label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 500;
+    color: #555;
+    font-size: 12px;
+}
+
+.stat-form-row input[type="text"] {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 13px;
+    color: #333;
+    background-color: #fff;
+    box-sizing: border-box;
+}
+
+.stat-form-row textarea {
+    width: 100%;
+    min-height: 50px;
+    max-height: 80px;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 13px;
+    color: #333;
+    background-color: #fff;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+/* Tier列表样式 - 移动端优化 */
+.tiers-section {
+    border-top: 1px solid #ddd;
+    padding-top: 12px;
+}
+
+.tiers-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tiers-header h4 {
+    margin: 0;
+    color: #333;
+    font-size: 14px;
+    flex: 1;
+    min-width: 80px;
+}
+
+.add-tier-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.add-tier-btn:hover {
+    background-color: #218838;
+}
+
+.tier-item {
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    padding: 8px;
+    background-color: #fff;
+    margin-bottom: 8px;
+}
+
+.tier-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.tier-item-title {
+    font-weight: 500;
+    color: #333;
+    margin: 0;
+    font-size: 13px;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 8px;
+}
+
+.tier-delete-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 2px 5px;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 10px;
+    flex-shrink: 0;
+}
+
+.tier-delete-btn:hover {
+    background: #c82333;
+}
+
+/* 移动端优化的tier表单网格 */
+.tier-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 70px 70px;
+    gap: 6px;
+    align-items: start;
+    margin-bottom: 8px;
+}
+
+.tier-form-grid label {
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 2px;
+    display: block;
+    line-height: 1.2;
+}
+
+.tier-form-grid input[type="text"],
+.tier-form-grid input[type="number"] {
+    width: 100%;
+    padding: 4px 6px;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    font-size: 12px;
+    box-sizing: border-box;
+}
+
+.tier-prompt-row {
+    margin-top: 6px;
+}
+
+.tier-prompt-row label {
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 2px;
+    display: block;
+}
+
+.tier-prompt-row textarea {
+    width: 100%;
+    min-height: 40px;
+    max-height: 60px;
+    padding: 4px 6px;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    font-size: 12px;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+/* 提示词预览样式 */
+.prompt-preview-section {
+    margin: 20px 0;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+}
+
+.prompt-preview-section h4 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.prompt-preview-content {
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    padding: 12px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #555;
+    white-space: pre-wrap;
+    max-height: 120px;
+    overflow-y: auto;
+    min-height: 40px;
+}
+
+.prompt-preview-content:empty::before {
+    content: "暂无状态配置，请添加状态后查看提示词预览";
+    color: #999;
+    font-style: italic;
 }

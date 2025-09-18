@@ -626,6 +626,9 @@ async function showStatSettingModal() {
     
     console.log("数值设置弹层已显示");
     
+    // 初始化状态管理界面
+    initStatManager();
+    
   } catch (error) {
     console.error("加载数值设置页面失败:", error);
     toastr.error(`加载数值设置失败: ${error.message}`, "错误");
@@ -638,6 +641,358 @@ function closeStatSettingModal() {
   $(document).off("keydown.statModal");
   console.log("数值设置弹层已关闭");
 }
+
+// 状态管理数据
+let statsData = {
+  states: [
+    {
+      statName: "生命值",
+      prompt: "角色的生命力",
+      tier: [
+        {
+          name: "垂死",
+          from: -999,
+          to: -100,
+          prompt: "再接受一次攻击就会死亡"
+        },
+        {
+          name: "重伤",
+          from: -100,
+          to: 0,
+          prompt: "无法动弹"
+        }
+      ]
+    },
+    {
+      statName: "法力值", 
+      prompt: "角色的发力",
+      tier: [
+        {
+          name: "枯竭",
+          from: -999,
+          to: 0,
+          prompt: "没有任何发力"
+        },
+        {
+          name: "正常",
+          from: 0,
+          to: 100,
+          prompt: "正常"
+        }
+      ]
+    }
+  ]
+};
+
+// 初始化状态管理界面
+function initStatManager() {
+  // 加载保存的数据
+  if (extension_settings[extensionName]?.statsData) {
+    statsData = extension_settings[extensionName].statsData;
+  }
+  
+  renderStatsContainer();
+  bindStatEvents();
+  updatePromptPreview();
+}
+
+// 渲染状态容器
+function renderStatsContainer() {
+  const container = $("#statsContainer");
+  container.empty();
+  
+  statsData.states.forEach((stat, index) => {
+    const statPanel = createStatPanel(stat, index);
+    container.append(statPanel);
+  });
+}
+
+// 创建状态面板
+function createStatPanel(stat, index) {
+  const panelHtml = `
+    <div class="stat-panel" data-index="${index}">
+      <div class="stat-panel-header" onclick="toggleStatPanel(${index})">
+        <h4 class="stat-panel-title">${stat.statName || '未命名状态'}</h4>
+        <div class="stat-panel-controls">
+          <span class="stat-panel-toggle">▼</span>
+          <button class="stat-delete-btn" onclick="deleteStat(${index}); event.stopPropagation();">删除</button>
+        </div>
+      </div>
+      <div class="stat-panel-content" id="statPanel_${index}">
+        <div class="stat-basic-settings">
+          <div class="stat-form-row">
+            <label>状态名称:</label>
+            <input type="text" value="${stat.statName}" 
+                   onchange="updateStatName(${index}, this.value)">
+          </div>
+          <div class="stat-form-row">
+            <label>状态描述:</label>
+            <textarea onchange="updateStatPrompt(${index}, this.value)">${stat.prompt}</textarea>
+          </div>
+        </div>
+        <div class="tiers-section">
+          <div class="tiers-header">
+            <h4>等级设置</h4>
+            <button class="add-tier-btn" onclick="addTier(${index})">添加等级</button>
+          </div>
+          <div class="tier-list" id="tierList_${index}">
+            ${renderTierList(stat.tier, index)}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  return $(panelHtml);
+}
+
+// 渲染tier列表
+function renderTierList(tiers, statIndex) {
+  return tiers.map((tier, tierIndex) => `
+    <div class="tier-item" data-tier-index="${tierIndex}">
+      <div class="tier-item-header">
+        <h5 class="tier-item-title">${tier.name || '未命名等级'}</h5>
+        <button class="tier-delete-btn" onclick="deleteTier(${statIndex}, ${tierIndex})">删除</button>
+      </div>
+      <div class="tier-form-grid">
+        <div>
+          <label>等级名称:</label>
+          <input type="text" value="${tier.name}" 
+                 onchange="updateTierName(${statIndex}, ${tierIndex}, this.value)">
+        </div>
+      </div>
+      <div class="tier-prompt-row">
+        <div>
+          <label>最小值:</label>
+          <input type="number" value="${tier.from}" 
+                 onchange="updateTierFrom(${statIndex}, ${tierIndex}, this.value)">
+        </div>
+        <div>
+          <label>最大值:</label>
+          <input type="number" value="${tier.to}" 
+                 onchange="updateTierTo(${statIndex}, ${tierIndex}, this.value)">
+        </div>
+      </div>
+      <div class="tier-prompt-row">
+        <label>等级描述:</label>
+        <textarea onchange="updateTierPrompt(${statIndex}, ${tierIndex}, this.value)">${tier.prompt}</textarea>
+      </div>
+    </div>
+  `).join('');
+}
+
+// 绑定状态管理事件
+function bindStatEvents() {
+  $("#addStatBtn").off('click').on('click', addStat);
+  $("#saveStatsBtn").off('click').on('click', saveStatsData);
+  $("#loadDefaultStatsBtn").off('click').on('click', loadDefaultStats);
+}
+
+// 生成提示词预览
+function generatePromptPreview() {
+  if (!statsData || !statsData.states || statsData.states.length === 0) {
+    $("#promptPreview").empty();
+    return;
+  }
+  
+  let prompt = "根据最后一条回复内容，统计以下状态值的变化。\n";
+  
+  const statDescriptions = statsData.states.map(stat => {
+    return `${stat.statName}：${stat.prompt}`;
+  }).join('，');
+  
+  prompt += statDescriptions;
+  
+  $("#promptPreview").text(prompt);
+}
+
+// 更新提示词预览（在数据变化时调用）
+function updatePromptPreview() {
+  generatePromptPreview();
+}
+
+// 切换状态面板展开/收起
+function toggleStatPanel(index) {
+  const content = $(`#statPanel_${index}`);
+  const toggle = $(`.stat-panel[data-index="${index}"] .stat-panel-toggle`);
+  
+  if (content.hasClass('expanded')) {
+    content.removeClass('expanded').slideUp(200);
+    toggle.removeClass('expanded');
+  } else {
+    content.addClass('expanded').slideDown(200);
+    toggle.addClass('expanded');
+  }
+}
+
+// 添加新状态
+function addStat() {
+  const newStat = {
+    statName: "新状态",
+    prompt: "状态描述",
+    tier: [
+      {
+        name: "默认等级",
+        from: 0,
+        to: 100,
+        prompt: "默认等级描述"
+      }
+    ]
+  };
+  
+  statsData.states.push(newStat);
+  renderStatsContainer();
+  bindStatEvents();
+  updatePromptPreview();
+  
+  // 自动展开新添加的状态
+  const newIndex = statsData.states.length - 1;
+  setTimeout(() => toggleStatPanel(newIndex), 100);
+}
+
+// 删除状态
+function deleteStat(index) {
+  if (confirm('确定要删除这个状态吗？')) {
+    statsData.states.splice(index, 1);
+    renderStatsContainer();
+    bindStatEvents();
+    updatePromptPreview();
+  }
+}
+
+// 添加tier
+function addTier(statIndex) {
+  const newTier = {
+    name: "新等级",
+    from: 0,
+    to: 100,
+    prompt: "等级描述"
+  };
+  
+  statsData.states[statIndex].tier.push(newTier);
+  
+  // 重新渲染该状态的tier列表
+  const tierList = $(`#tierList_${statIndex}`);
+  tierList.html(renderTierList(statsData.states[statIndex].tier, statIndex));
+}
+
+// 删除tier
+function deleteTier(statIndex, tierIndex) {
+  if (confirm('确定要删除这个等级吗？')) {
+    statsData.states[statIndex].tier.splice(tierIndex, 1);
+    
+    // 重新渲染该状态的tier列表
+    const tierList = $(`#tierList_${statIndex}`);
+    tierList.html(renderTierList(statsData.states[statIndex].tier, statIndex));
+  }
+}
+
+// 更新状态名称
+function updateStatName(index, value) {
+  statsData.states[index].statName = value;
+  // 更新面板标题
+  $(`.stat-panel[data-index="${index}"] .stat-panel-title`).text(value || '未命名状态');
+  updatePromptPreview();
+}
+
+// 更新状态描述
+function updateStatPrompt(index, value) {
+  statsData.states[index].prompt = value;
+  updatePromptPreview();
+}
+
+// 更新tier名称
+function updateTierName(statIndex, tierIndex, value) {
+  statsData.states[statIndex].tier[tierIndex].name = value;
+  // 更新tier标题
+  $(`.stat-panel[data-index="${statIndex}"] .tier-item[data-tier-index="${tierIndex}"] .tier-item-title`)
+    .text(value || '未命名等级');
+}
+
+// 更新tier最小值
+function updateTierFrom(statIndex, tierIndex, value) {
+  statsData.states[statIndex].tier[tierIndex].from = parseInt(value) || 0;
+}
+
+// 更新tier最大值
+function updateTierTo(statIndex, tierIndex, value) {
+  statsData.states[statIndex].tier[tierIndex].to = parseInt(value) || 0;
+}
+
+// 更新tier描述
+function updateTierPrompt(statIndex, tierIndex, value) {
+  statsData.states[statIndex].tier[tierIndex].prompt = value;
+}
+
+// 保存状态数据
+function saveStatsData() {
+  extension_settings[extensionName].statsData = JSON.parse(JSON.stringify(statsData));
+  saveSettingsDebounced();
+  toastr.success('状态配置已保存', '状态管理');
+  console.log('状态数据已保存:', statsData);
+}
+
+// 恢复默认数据
+function loadDefaultStats() {
+  if (confirm('确定要恢复默认配置吗？这将覆盖当前所有设置。')) {
+    statsData = {
+      states: [
+        {
+          statName: "生命值",
+          prompt: "角色的生命力",
+          tier: [
+            {
+              name: "垂死",
+              from: -999,
+              to: -100,
+              prompt: "再接受一次攻击就会死亡"
+            },
+            {
+              name: "重伤",
+              from: -100,
+              to: 0,
+              prompt: "无法动弹"
+            }
+          ]
+        },
+        {
+          statName: "法力值",
+          prompt: "角色的发力",
+          tier: [
+            {
+              name: "枯竭",
+              from: -999,
+              to: 0,
+              prompt: "没有任何发力"
+            },
+            {
+              name: "正常",
+              from: 0,
+              to: 100,
+              prompt: "正常"
+            }
+          ]
+        }
+      ]
+    };
+    
+    renderStatsContainer();
+    bindStatEvents();
+    updatePromptPreview();
+    toastr.success('已恢复默认配置', '状态管理');
+  }
+}
+
+// 将这些函数设为全局函数，以便HTML中的onclick能访问到
+window['toggleStatPanel'] = toggleStatPanel;
+window['deleteStat'] = deleteStat;
+window['addTier'] = addTier;
+window['deleteTier'] = deleteTier;
+window['updateStatName'] = updateStatName;
+window['updateStatPrompt'] = updateStatPrompt;
+window['updateTierName'] = updateTierName;
+window['updateTierFrom'] = updateTierFrom;
+window['updateTierTo'] = updateTierTo;
+window['updateTierPrompt'] = updateTierPrompt;
 
 // jQuery加载时初始化
 jQuery(async () => {
