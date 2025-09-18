@@ -238,6 +238,9 @@ async function summarizeMessages() {
       console.log(`智能总结: 已完成总结: "${summaryPreview}"`);
       console.log(`智能总结: 完整总结内容长度: ${summary.length} 字符`);
       
+      // 解析和更新角色状态数据，并获取替换后的总结内容
+      summary = parseAndUpdateAvatarStats(summary);
+      
       // 更新注入内容
       const context = getContext();
       const characterName = context?.name2 || "unknown";
@@ -822,7 +825,7 @@ function generatePromptPreview() {
   
   prompt += "【" + statDescriptions + "】";
 
-  prompt += "统计结果以下面格式返回: <数据统计>`json格式数据统计`</数据统计>，每个角色一个json对象。仅统计变化量，而不是合计值"
+  prompt += "统计结果以下面格式返回: <数据统计>`json格式数据统计`</数据统计>，每个角色一个json对象，使用中括号包含。仅统计变化量，而不是合计值"
   
   $("#promptPreview").text(prompt);
 }
@@ -1108,6 +1111,245 @@ window['updateTierFrom'] = updateTierFrom;
 window['updateTierTo'] = updateTierTo;
 window['updateTierPrompt'] = updateTierPrompt;
 
+// ===== 状态解析和更新功能 =====
+
+// 解析总结内容中的状态数据并更新角色状态
+function parseAndUpdateAvatarStats(summaryContent) {
+  try {
+    console.log('状态解析: 开始解析总结内容中的状态数据');
+    
+    // 使用正则表达式提取<数据统计>标签中的内容
+    const regex = /<数据统计>`(.+?)`<\/数据统计>/s;
+    const match = summaryContent.match(regex);
+    
+    if (!match || !match[1]) {
+      console.log('状态解析: 未找到数据统计标签或内容为空');
+      return summaryContent; // 返回原始内容
+    }
+    
+    const jsonString = match[1].trim();
+    console.log('状态解析: 提取的JSON字符串:', jsonString);
+    
+    // 解析JSON数据
+    let statsUpdates;
+    try {
+      statsUpdates = JSON.parse(jsonString);
+    } catch (jsonError) {
+      console.error('状态解析: JSON解析失败:', jsonError);
+      console.error('状态解析: 原始JSON字符串:', jsonString);
+      return summaryContent; // 返回原始内容
+    }
+    
+    if (!Array.isArray(statsUpdates)) {
+      console.error('状态解析: 解析的数据不是数组格式');
+      return summaryContent; // 返回原始内容
+    }
+    
+    console.log('状态解析: 成功解析状态更新数据:', statsUpdates);
+    
+    // 更新角色状态
+    let updatedCount = 0;
+    const updatedAvatars = []; // 记录更新的角色信息
+    
+    statsUpdates.forEach(update => {
+      const characterName = update.角色名 || update.角色 || update.name;
+      if (!characterName) {
+        console.warn('状态解析: 跳过无角色名的更新项:', update);
+        return;
+      }
+      
+      // 查找对应的角色
+      const avatar = avatarsData.find(a => 
+        a.name === characterName || 
+        a.otherName === characterName ||
+        (a.otherName && a.otherName.includes(characterName)) ||
+        (a.name && a.name.includes(characterName))
+      );
+      
+      if (!avatar) {
+        console.warn(`状态解析: 未找到角色 "${characterName}"`);
+        return;
+      }
+      
+      console.log(`状态解析: 正在更新角色 "${avatar.name}" 的状态`);
+      
+      // 更新状态值（累加变化量）
+      let hasUpdates = false;
+      Object.entries(update).forEach(([key, value]) => {
+        // 跳过角色名字段
+        if (key === '角色名' || key === '角色' || key === 'name') {
+          return;
+        }
+        
+        // 提取状态名称（去掉"变化"后缀）
+        const statName = key.replace(/变化$/, '');
+        
+        // 检查这个状态是否在配置中
+        const isConfiguredStat = statsData && statsData.states && 
+          statsData.states.some(stat => stat.statName === statName);
+        
+        if (!isConfiguredStat) {
+          console.warn(`状态解析: 状态 "${statName}" 不在当前配置中，跳过`);
+          return;
+        }
+        
+        const changeValue = parseInt(value) || 0;
+        if (changeValue === 0) {
+          return; // 跳过无变化的状态
+        }
+        
+        // 确保角色有stats对象
+        if (!avatar.stats) {
+          avatar.stats = {};
+        }
+        
+        // 累加状态变化
+        const currentValue = avatar.stats[statName] || 0;
+        const newValue = currentValue + changeValue;
+        avatar.stats[statName] = newValue;
+        
+        console.log(`状态解析: 角色 "${avatar.name}" 的 "${statName}" 从 ${currentValue} 变化 ${changeValue} 到 ${newValue}`);
+        hasUpdates = true;
+      });
+      
+      if (hasUpdates) {
+        updatedCount++;
+        updatedAvatars.push(avatar);
+      }
+    });
+    
+      if (updatedCount > 0) {
+        console.log(`状态解析: 成功更新了 ${updatedCount} 个角色的状态`);
+        
+        // 保存更新后的角色数据
+        extension_settings[extensionName].avatarsData = JSON.parse(JSON.stringify(avatarsData));
+        saveSettingsDebounced();
+        
+        // 如果角色管理弹层打开，更新显示
+        if ($("#avatarManagerModal").is(':visible')) {
+          renderAvatarsTable();
+        }
+        
+        // 显示详细的状态更新信息
+        showStatsUpdateNotification(statsUpdates, updatedCount);
+        
+      } else {
+        console.log('状态解析: 没有角色状态需要更新');
+      }
+      
+      // 生成角色当前状态标签内容并替换<数据统计>标签
+      // 如果没有更新的角色，尝试从JSON中获取所有相关角色
+      let allRelevantAvatars = updatedAvatars;
+      if (allRelevantAvatars.length === 0) {
+        // 从JSON更新数据中获取角色名，尝试匹配现有角色
+        allRelevantAvatars = statsUpdates.map(update => {
+          const characterName = update.角色名 || update.角色 || update.name;
+          return avatarsData.find(a => 
+            a.name === characterName || 
+            a.otherName === characterName ||
+            (a.otherName && a.otherName.includes(characterName)) ||
+            (a.name && a.name.includes(characterName))
+          );
+        }).filter(Boolean);
+      }
+      
+      const currentStatusContent = generateCurrentStatusContent(allRelevantAvatars);
+      const newSummaryContent = summaryContent.replace(regex, `<角色当前状态>${currentStatusContent}</角色当前状态>`);
+      
+      console.log('状态解析: 已将<数据统计>标签替换为<角色当前状态>标签');
+      return newSummaryContent;
+      
+    } catch (error) {
+      console.error('状态解析: 解析过程发生错误:', error);
+      return summaryContent; // 返回原始内容
+    }
+}
+
+// 生成角色当前状态内容
+function generateCurrentStatusContent(updatedAvatars) {
+  if (!updatedAvatars || updatedAvatars.length === 0) {
+    return '';
+  }
+  
+  const statusDescriptions = updatedAvatars.map(avatar => {
+    const statusTexts = [];
+    
+    // 遍历角色的所有状态
+    if (avatar.stats) {
+      Object.entries(avatar.stats).forEach(([statName, statValue]) => {
+        // 查找对应的状态配置
+        const statConfig = statsData?.states?.find(s => s.statName === statName);
+        
+        if (!statConfig || !statConfig.tier || statConfig.tier.length === 0) {
+          return; // 没有配置，跳过
+        }
+        
+        // 根据数值查找对应的tier
+        const matchingTier = statConfig.tier.find(tier => {
+          const fromValue = parseInt(tier.from) || -999;
+          const toValue = parseInt(tier.to) || 999;
+          return statValue >= fromValue && statValue <= toValue;
+        });
+        
+        if (matchingTier && matchingTier.prompt) {
+          statusTexts.push(matchingTier.prompt);
+        }
+      });
+    }
+    
+    // 如果有状态描述，返回角色名:状态描述列表
+    if (statusTexts.length > 0) {
+      return `${avatar.name}:${statusTexts.join(',')}`;
+    } else {
+      return null;
+    }
+  }).filter(Boolean); // 过滤掉空值
+  
+  // 用换行符连接多个角色
+  return statusDescriptions.join('\n');
+}
+
+// 显示状态更新通知
+function showStatsUpdateNotification(statsUpdates, updatedCount) {
+  // 构建更新详情消息
+  const updateDetails = statsUpdates.map(update => {
+    const characterName = update.角色名 || update.角色 || update.name;
+    if (!characterName) return null;
+    
+    // 查找对应的角色
+    const avatar = avatarsData.find(a => 
+      a.name === characterName || 
+      a.otherName === characterName ||
+      (a.otherName && a.otherName.includes(characterName)) ||
+      (a.name && a.name.includes(characterName))
+    );
+    
+    if (!avatar) return null;
+    
+    // 收集有变化的状态
+    const changes = [];
+    Object.entries(update).forEach(([key, value]) => {
+      if (key === '角色名' || key === '角色' || key === 'name') return;
+      
+      const changeValue = parseInt(value) || 0;
+      if (changeValue !== 0) {
+        const statName = key.replace(/变化$/, '');
+        changes.push(`${statName}${changeValue > 0 ? '+' : ''}${changeValue}`);
+      }
+    });
+    
+    return changes.length > 0 ? `${avatar.name}: ${changes.join(', ')}` : null;
+  }).filter(Boolean);
+  
+  if (updateDetails.length > 0) {
+    const message = `已更新 ${updatedCount} 个角色状态:\n${updateDetails.join('\n')}`;
+    toastr.success(message, '状态统计', {
+      timeOut: 5000,
+      extendedTimeOut: 2000
+    });
+  }
+}
+
 // ===== 状态同步功能 =====
 
 // 同步所有角色的状态值与当前配置
@@ -1194,6 +1436,22 @@ function syncAvatarStatNames(oldStatName, newStatName) {
     }
   });
 }
+
+// 测试状态解析功能（开发调试用）
+function testStatsParsingFeature() {
+  const testSummary = `查线路无果，邀"你"今晚一起去变电站查看，称异常时附近有穿白色工装的人出现。
+<数据统计>\`[{"角色名": "张大力","生命值变化": -110,"法力值变化": 5},{"角色名": "李佳","生命值变化": 0,"法力值变化": -30}]\`</数据统计>`;
+  
+  console.log('=== 开始测试状态解析功能 ===');
+  const result = parseAndUpdateAvatarStats(testSummary);
+  console.log('=== 状态解析功能测试完成 ===');
+  console.log('处理后的总结内容:', result);
+  
+  return result;
+}
+
+// 将测试函数暴露到全局作用域，方便调试
+window['testStatsParsingFeature'] = testStatsParsingFeature;
 
 // ===== 角色管理功能 =====
 
