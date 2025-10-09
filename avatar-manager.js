@@ -464,6 +464,18 @@ export function setAvatarManagerDependencies(dependencies) {
 
 // 导出角色数据供其他模块使用
 export function getAvatarsData() {
+  // 确保返回最新的数据，从扩展设置中同步
+  if (extension_settings[extensionName]?.avatarsData) {
+    // 如果扩展设置中的数据与本地数据不同，更新本地数据
+    const settingsData = extension_settings[extensionName].avatarsData;
+    if (JSON.stringify(settingsData) !== JSON.stringify(avatarsData)) {
+      console.log('角色管理: 从扩展设置同步角色数据');
+      avatarsData = settingsData;
+      if (avatarsData && avatarsData.length > 0) {
+        nextAvatarId = Math.max(...avatarsData.map(a => a.id || 0), 0) + 1;
+      }
+    }
+  }
   return avatarsData;
 }
 

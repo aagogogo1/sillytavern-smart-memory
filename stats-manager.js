@@ -609,6 +609,8 @@ export function parseAndUpdateAvatarStats(summaryContent) {
 
       // 查找对应的角色
       const avatarsData = getAvatarsData();
+      console.log(`状态解析: 查找角色 "${characterName}"，当前角色列表:`, avatarsData.map(a => ({name: a.name, otherName: a.otherName})));
+
       const avatar = avatarsData.find(a =>
         a.name === characterName ||
         a.otherName === characterName ||
@@ -618,7 +620,31 @@ export function parseAndUpdateAvatarStats(summaryContent) {
 
       if (!avatar) {
         console.warn(`状态解析: 未找到角色 "${characterName}"`);
-        return;
+        console.warn(`状态解析: 可用角色名称: ${avatarsData.map(a => a.name).join(', ')}`);
+        console.warn(`状态解析: 尝试从扩展设置直接获取角色数据`);
+
+        // 尝试直接从扩展设置获取数据
+        const settingsAvatars = extension_settings[extensionName]?.avatarsData;
+        if (settingsAvatars) {
+          console.log('状态解析: 扩展设置中的角色数据:', settingsAvatars.map(a => ({name: a.name, otherName: a.otherName})));
+          const settingsAvatar = settingsAvatars.find(a =>
+            a.name === characterName ||
+            a.otherName === characterName ||
+            (a.otherName && a.otherName.includes(characterName)) ||
+            (a.name && a.name.includes(characterName))
+          );
+
+          if (settingsAvatar) {
+            console.log(`状态解析: 在扩展设置中找到角色 "${characterName}"`);
+            avatar = settingsAvatar;
+          } else {
+            console.error(`状态解析: 扩展设置中也未找到角色 "${characterName}"`);
+            return;
+          }
+        } else {
+          console.error(`状态解析: 扩展设置中没有角色数据`);
+          return;
+        }
       }
 
       console.log(`状态解析: 正在更新角色 "${avatar.name}" 的状态`);
@@ -678,9 +704,10 @@ export function parseAndUpdateAvatarStats(summaryContent) {
     if (updatedCount > 0) {
       console.log(`状态解析: 成功更新了 ${updatedCount} 个角色的状态`);
 
-      // 保存更新后的角色数据
-      updateAvatarsData(avatarsData);
-      extension_settings[extensionName].avatarsData = JSON.parse(JSON.stringify(avatarsData));
+      // 获取最新的角色数据并保存
+      const currentAvatarsData = getAvatarsData();
+      updateAvatarsData(currentAvatarsData);
+      extension_settings[extensionName].avatarsData = JSON.parse(JSON.stringify(currentAvatarsData));
       saveSettingsDebounced();
 
       // 如果角色管理弹层打开，更新显示
@@ -713,7 +740,10 @@ export function parseAndUpdateAvatarStats(summaryContent) {
     }
 
     const currentStatusContent = generateCurrentStatusContent(allRelevantAvatars);
-    const newSummaryContent = summaryContent.replace(regex, `<角色当前状态>${currentStatusContent}</角色当前状态>`);
+
+    // 使用两个正则表达式来替换<数据统计>标签
+    let newSummaryContent = summaryContent.replace(regexWithBackticks, `<角色当前状态>${currentStatusContent}</角色当前状态>`);
+    newSummaryContent = newSummaryContent.replace(regexDirect, `<角色当前状态>${currentStatusContent}</角色当前状态>`);
 
     console.log('状态解析: 已将<数据统计>标签替换为<角色当前状态>标签');
     return newSummaryContent;
@@ -730,42 +760,65 @@ function generateCurrentStatusContent(updatedAvatars) {
     return '';
   }
 
+  console.log('状态生成: 开始生成角色当前状态内容，角色数据:', updatedAvatars);
+
   const statusDescriptions = updatedAvatars.map(avatar => {
     const statusTexts = [];
+
+    console.log(`状态生成: 处理角色 "${avatar.name}"，状态:`, avatar.stats);
 
     // 遍历角色的所有状态
     if (avatar.stats) {
       Object.entries(avatar.stats).forEach(([statName, statValue]) => {
-        // 查找对应的状态配置
-        const statConfig = statsData?.states?.find(s => s.statName === statName);
+        console.log(`状态生成: 处理状态 "${statName}" = ${statValue}`);
+
+        // 查找对应的状态配置（确保statsData已初始化）
+        let currentStatsData = statsData;
+        if (!currentStatsData || !currentStatsData.states) {
+          currentStatsData = extension_settings[extensionName]?.statsData;
+        }
+        const statConfig = currentStatsData?.states?.find(s => s.statName === statName);
 
         if (!statConfig || !statConfig.tier || statConfig.tier.length === 0) {
+          console.log(`状态生成: 状态 "${statName}" 没有配置，跳过`);
           return; // 没有配置，跳过
         }
+
+        console.log(`状态生成: 状态 "${statName}" 配置:`, statConfig.tier);
 
         // 根据数值查找对应的tier
         const matchingTier = statConfig.tier.find(tier => {
           const fromValue = parseInt(tier.from) || -999;
           const toValue = parseInt(tier.to) || 999;
-          return statValue >= fromValue && statValue <= toValue;
+          const isMatch = statValue >= fromValue && statValue <= toValue;
+          console.log(`状态生成: 检查tier ${tier.name} (${fromValue}-${toValue})，值 ${statValue}，匹配: ${isMatch}`);
+          return isMatch;
         });
 
         if (matchingTier && matchingTier.prompt) {
+          console.log(`状态生成: 角色 "${avatar.name}" 状态 "${statName}" 匹配tier "${matchingTier.name}": ${matchingTier.prompt}`);
           statusTexts.push(matchingTier.prompt);
+        } else {
+          console.log(`状态生成: 角色 "${avatar.name}" 状态 "${statName}" 没有匹配的tier`);
         }
       });
     }
 
     // 如果有状态描述，返回角色名:状态描述列表
     if (statusTexts.length > 0) {
-      return `${avatar.name}:${statusTexts.join(',')}`;
+      const result = `${avatar.name}:${statusTexts.join(',')}`;
+      console.log(`状态生成: 角色 "${avatar.name}" 最终状态描述: ${result}`);
+      return result;
     } else {
+      console.log(`状态生成: 角色 "${avatar.name}" 没有状态描述`);
       return null;
     }
   }).filter(Boolean); // 过滤掉空值
 
   // 用换行符连接多个角色
-  return statusDescriptions.join('\n');
+  const finalResult = statusDescriptions.join('\n');
+  console.log('状态生成: 最终生成的角色状态内容:', finalResult);
+  return finalResult;
 }
 
 // 显示状态更新通知
