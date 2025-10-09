@@ -684,9 +684,7 @@ export function parseAndUpdateAvatarStats(summaryContent) {
         }
 
         const changeValue = parseInt(value) || 0;
-        if (changeValue === 0) {
-          return; // 跳过无变化的状态
-        }
+        // 注意：即使变化值为0，我们也要处理，因为角色可能需要生成状态描述
 
         // 确保角色有stats对象
         if (!avatar.stats) {
@@ -702,9 +700,16 @@ export function parseAndUpdateAvatarStats(summaryContent) {
         hasUpdates = true;
       });
 
-      if (hasUpdates) {
+      // 只要有状态字段存在，就将角色加入更新列表（即使变化值为0）
+      if (Object.keys(update).some(key => !['角色名', '角色', 'name'].includes(key))) {
         updatedCount++;
         updatedAvatars.push(avatar);
+
+        if (hasUpdates) {
+          console.log(`状态解析: 角色 "${avatar.name}" 有实际的状态更新`);
+        } else {
+          console.log(`状态解析: 角色 "${avatar.name}" 只有状态信息，无实际变化`);
+        }
       }
     });
 
