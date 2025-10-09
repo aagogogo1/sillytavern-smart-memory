@@ -662,13 +662,20 @@ export function parseAndUpdateAvatarStats(summaryContent) {
 
         console.log(`状态解析: 解析状态键 "${key}" -> 状态名 "${statName}"`);
 
+        // 确保获取最新的状态配置
+        let currentStatsData = extension_settings[extensionName]?.statsData;
+        if (!currentStatsData || !currentStatsData.states) {
+          currentStatsData = statsData;
+        }
+
         // 检查这个状态是否在配置中
-        const isConfiguredStat = statsData && statsData.states &&
-          statsData.states.some(stat => stat.statName === statName);
+        const isConfiguredStat = currentStatsData && currentStatsData.states &&
+          currentStatsData.states.some(stat => stat.statName === statName);
 
         console.log(`状态解析: 状态 "${statName}" 配置检查:`, {
           已配置: isConfiguredStat,
-          当前配置状态: statsData?.states?.map(s => s.statName) || []
+          当前配置状态: currentStatsData?.states?.map(s => s.statName) || [],
+          配置数据来源: currentStatsData === statsData ? '本地statsData' : '扩展设置'
         });
 
         if (!isConfiguredStat) {
@@ -772,11 +779,22 @@ function generateCurrentStatusContent(updatedAvatars) {
       Object.entries(avatar.stats).forEach(([statName, statValue]) => {
         console.log(`状态生成: 处理状态 "${statName}" = ${statValue}`);
 
-        // 查找对应的状态配置（确保statsData已初始化）
-        let currentStatsData = statsData;
+        // 查找对应的状态配置（确保获取最新的配置数据）
+        let currentStatsData = extension_settings[extensionName]?.statsData;
         if (!currentStatsData || !currentStatsData.states) {
-          currentStatsData = extension_settings[extensionName]?.statsData;
+          currentStatsData = statsData;
         }
+
+        // 如果扩展设置中的数据与本地数据不同，更新本地数据
+        if (extension_settings[extensionName]?.statsData &&
+            JSON.stringify(extension_settings[extensionName].statsData) !== JSON.stringify(statsData)) {
+          console.log('状态生成: 从扩展设置同步状态配置数据');
+          statsData = extension_settings[extensionName].statsData;
+          currentStatsData = statsData;
+        }
+
+        console.log(`状态生成: 当前配置数据来源:`, currentStatsData === statsData ? '本地statsData' : '扩展设置');
+        console.log(`状态生成: 完整的配置数据:`, currentStatsData);
         const statConfig = currentStatsData?.states?.find(s => s.statName === statName);
 
         if (!statConfig || !statConfig.tier || statConfig.tier.length === 0) {
@@ -788,10 +806,10 @@ function generateCurrentStatusContent(updatedAvatars) {
 
         // 根据数值查找对应的tier
         const matchingTier = statConfig.tier.find(tier => {
-          const fromValue = parseInt(tier.from) || -999;
-          const toValue = parseInt(tier.to) || 999;
+          const fromValue = tier.from !== undefined && tier.from !== null ? parseInt(tier.from) : -999;
+          const toValue = tier.to !== undefined && tier.to !== null ? parseInt(tier.to) : 999;
           const isMatch = statValue >= fromValue && statValue <= toValue;
-          console.log(`状态生成: 检查tier ${tier.name} (${fromValue}-${toValue})，值 ${statValue}，匹配: ${isMatch}`);
+          console.log(`状态生成: 检查tier ${tier.name} (${fromValue}-${toValue})，值 ${statValue}，匹配: ${isMatch} (原始值: from=${tier.from}, to=${tier.to})`);
           return isMatch;
         });
 
