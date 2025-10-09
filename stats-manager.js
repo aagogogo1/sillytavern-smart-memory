@@ -263,7 +263,7 @@ function generatePromptPreview() {
 
   prompt += "【" + statDescriptions + "】";
 
-  prompt += "统计结果以下面格式返回: <数据统计>`json格式数据统计`</数据统计>，每个角色一个json对象，使用中括号包含。仅统计变化量，而不是合计值"
+  prompt += "统计结果以下面格式返回: <数据统计>`json格式数据统计`</数据统计>，每个角色一个json对象，使用中括号包含。仅统计变化量，而不是合计值。返回的属性为：" + statDescriptions
 
   $("#promptPreview").text(prompt);
 }
