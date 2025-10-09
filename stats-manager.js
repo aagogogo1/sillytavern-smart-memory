@@ -226,6 +226,9 @@ function bindStatEvents() {
   $("#addStatBtn").off('click').on('click', addStat);
   $("#saveStatsBtn").off('click').on('click', saveStatsData);
   $("#loadDefaultStatsBtn").off('click').on('click', loadDefaultStats);
+  $("#exportStatsBtn").off('click').on('click', exportStatsData);
+  $("#importStatsBtn").off('click').on('click', () => $("#importFileInput").click());
+  $("#importFileInput").off('change').on('change', importStatsData);
 }
 
 // 生成提示词预览
@@ -520,6 +523,173 @@ function saveStatsData() {
   const message = promptUpdated ? '状态配置已保存，提示词已更新，角色状态已同步' : '状态配置已保存，角色状态已同步';
   toastr.success(message, '状态管理');
   console.log('状态数据已手动保存:', statsData);
+}
+
+// 导出状态配置
+function exportStatsData() {
+  try {
+    // 创建导出数据，包含元数据
+    const exportData = {
+      version: "1.0",
+      exportTime: new Date().toISOString(),
+      data: statsData
+    };
+
+    // 转换为JSON字符串
+    const jsonString = JSON.stringify(exportData, null, 2);
+
+    // 创建Blob对象
+    const blob = new Blob([jsonString], { type: 'application/json' });
+
+    // 创建下载链接
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+
+    // 生成文件名（包含时间戳）
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+    link.download = `stats-config-${timestamp}.json`;
+
+    // 触发下载
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // 清理URL对象
+    URL.revokeObjectURL(url);
+
+    toastr.success('状态配置已导出', '导出成功');
+    console.log('状态配置已导出:', exportData);
+
+  } catch (error) {
+    console.error('导出状态配置失败:', error);
+    toastr.error('导出失败: ' + error.message, '导出错误');
+  }
+}
+
+// 导入状态配置
+function importStatsData(event) {
+  try {
+    const file = event.target.files[0];
+    if (!file) {
+      return;
+    }
+
+    // 验证文件类型
+    if (!file.name.toLowerCase().endsWith('.json')) {
+      toastr.error('请选择JSON格式的配置文件', '文件格式错误');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const content = e.target.result;
+        const importData = JSON.parse(content);
+
+        // 验证导入数据格式
+        if (!validateImportData(importData)) {
+          return;
+        }
+
+        // 确认导入
+        if (confirm('确定要导入这个配置吗？这将覆盖当前所有设置。')) {
+          // 提取数据部分（兼容旧格式）
+          statsData = importData.data || importData;
+
+          // 同步角色状态
+          syncAvatarStatsWithConfig();
+
+          // 如果角色管理弹层已打开，更新角色表格显示
+          if ($("#avatarManagerModal").is(':visible')) {
+            $(document).trigger('avatarManagerRefresh');
+          }
+
+          renderStatsContainer();
+          bindStatEvents();
+          updatePromptPreview();
+
+          // 自动保存
+          autoSaveStatsData(true); // 显示通知
+
+          const importInfo = importData.version && importData.exportTime
+            ? `版本: ${importData.version}, 导出时间: ${new Date(importData.exportTime).toLocaleString()}`
+            : '格式: 旧版本';
+
+          toastr.success(`配置导入成功\n${importInfo}`, '导入成功');
+          console.log('状态配置已导入:', statsData);
+        }
+
+      } catch (parseError) {
+        console.error('解析导入文件失败:', parseError);
+        toastr.error('文件格式错误，无法解析JSON内容', '导入失败');
+      }
+    };
+
+    reader.onerror = function() {
+      console.error('读取文件失败');
+      toastr.error('读取文件失败', '导入错误');
+    };
+
+    reader.readAsText(file);
+
+    // 清空文件输入，允许重复选择同一文件
+    event.target.value = '';
+
+  } catch (error) {
+    console.error('导入状态配置失败:', error);
+    toastr.error('导入失败: ' + error.message, '导入错误');
+  }
+}
+
+// 验证导入数据格式
+function validateImportData(importData) {
+  // 获取数据部分（兼容新旧格式）
+  const data = importData.data || importData;
+
+  // 基本结构验证
+  if (!data || typeof data !== 'object') {
+    toastr.error('无效的数据格式', '数据验证失败');
+    return false;
+  }
+
+  // 验证states属性
+  if (!data.states || !Array.isArray(data.states)) {
+    toastr.error('缺少states属性或格式不正确', '数据验证失败');
+    return false;
+  }
+
+  // 验证每个state的结构
+  for (let i = 0; i < data.states.length; i++) {
+    const state = data.states[i];
+
+    if (!state.statName || typeof state.statName !== 'string') {
+      toastr.error(`第${i + 1}个状态缺少statName属性`, '数据验证失败');
+      return false;
+    }
+
+    if (!state.tier || !Array.isArray(state.tier)) {
+      toastr.error(`状态"${state.statName}"缺少tier属性或格式不正确`, '数据验证失败');
+      return false;
+    }
+
+    // 验证每个tier的结构
+    for (let j = 0; j < state.tier.length; j++) {
+      const tier = state.tier[j];
+
+      if (!tier.name || typeof tier.name !== 'string') {
+        toastr.error(`状态"${state.statName}"的第${j + 1}个等级缺少name属性`, '数据验证失败');
+        return false;
+      }
+
+      if (tier.from === undefined || tier.to === undefined) {
+        toastr.error(`状态"${state.statName}"的第${j + 1}个等级缺少from或to属性`, '数据验证失败');
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 // 恢复默认数据
