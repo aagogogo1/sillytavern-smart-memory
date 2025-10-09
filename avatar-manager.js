@@ -43,13 +43,6 @@ export async function showAvatarManagerModal() {
     // 绑定关闭事件
     $("#closeAvatarModal").on("click", closeAvatarManagerModal);
 
-    // 点击遮罩层关闭
-    $("#avatarManagerModal").on("click", function(e) {
-      if (e.target === this) {
-        closeAvatarManagerModal();
-      }
-    });
-
     // ESC键关闭
     $(document).on("keydown.avatarModal", function(e) {
       if (e.key === "Escape") {

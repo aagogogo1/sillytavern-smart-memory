@@ -86,13 +86,6 @@ export async function showStatSettingModal() {
     // 绑定关闭事件
     $("#closeStatModal").on("click", closeStatSettingModal);
 
-    // 点击遮罩层关闭
-    $("#statSettingModal").on("click", function(e) {
-      if (e.target === this) {
-        closeStatSettingModal();
-      }
-    });
-
     // ESC键关闭
     $(document).on("keydown.statModal", function(e) {
       if (e.key === "Escape") {
