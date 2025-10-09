@@ -1,6 +1,7 @@
 import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
 import { saveSettingsDebounced, eventSource, event_types } from "../../../../script.js";
-import { showStatSettingModal, parseAndUpdateAvatarStats, showAvatarManagerModal } from "./stats-manager.js";
+import { showStatSettingModal, parseAndUpdateAvatarStats } from "./stats-manager.js";
+import { showAvatarManagerModal } from "./avatar-manager.js";
 
 // 扩展配置
 const extensionName = "sillytavern-smart-memory";
