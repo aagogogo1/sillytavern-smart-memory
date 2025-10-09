@@ -558,17 +558,26 @@ export function parseAndUpdateAvatarStats(summaryContent) {
   try {
     console.log('状态解析: 开始解析总结内容中的状态数据');
 
-    // 使用正则表达式提取<数据统计>标签中的内容
-    const regex = /<数据统计>`(.+?)`<\/数据统计>/s;
-    const match = summaryContent.match(regex);
+    // 使用正则表达式提取<数据统计>标签中的内容（支持两种格式：反引号包裹和直接内容）
+    const regexWithBackticks = /<数据统计>`(.+?)`<\/数据统计>/s;
+    const regexDirect = /<数据统计>\s*([\s\S]*?)\s*<\/数据统计>/s;
+
+    let match = summaryContent.match(regexWithBackticks);
+    if (!match) {
+      match = summaryContent.match(regexDirect);
+    }
 
     if (!match || !match[1]) {
       console.log('状态解析: 未找到数据统计标签或内容为空');
       return summaryContent; // 返回原始内容
     }
 
-    const jsonString = match[1].trim();
-    console.log('状态解析: 提取的JSON字符串:', jsonString);
+    let jsonString = match[1].trim();
+    console.log('状态解析: 提取的原始JSON字符串:', jsonString);
+
+    // 清理JSON字符串，移除markdown代码块标记
+    jsonString = jsonString.replace(/^```json\s*/i, '').replace(/```$/, '').trim();
+    console.log('状态解析: 清理后的JSON字符串:', jsonString);
 
     // 解析JSON数据
     let statsUpdates;
@@ -625,9 +634,16 @@ export function parseAndUpdateAvatarStats(summaryContent) {
         // 提取状态名称（去掉"变化"后缀）
         const statName = key.replace(/变化$/, '');
 
+        console.log(`状态解析: 解析状态键 "${key}" -> 状态名 "${statName}"`);
+
         // 检查这个状态是否在配置中
         const isConfiguredStat = statsData && statsData.states &&
           statsData.states.some(stat => stat.statName === statName);
+
+        console.log(`状态解析: 状态 "${statName}" 配置检查:`, {
+          已配置: isConfiguredStat,
+          当前配置状态: statsData?.states?.map(s => s.statName) || []
+        });
 
         if (!isConfiguredStat) {
           console.warn(`状态解析: 状态 "${statName}" 不在当前配置中，跳过`);
