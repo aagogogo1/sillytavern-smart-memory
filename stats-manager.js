@@ -345,6 +345,9 @@ function addStat() {
   bindStatEvents();
   updatePromptPreview();
 
+  // 自动保存
+  autoSaveStatsData(true); // 显示通知
+
   // 自动展开新添加的状态
   const newIndex = statsData.states.length - 1;
   setTimeout(() => toggleStatPanel(newIndex), 100);
@@ -367,6 +370,9 @@ function deleteStat(index) {
     renderStatsContainer();
     bindStatEvents();
     updatePromptPreview();
+
+    // 自动保存
+    autoSaveStatsData(true); // 显示通知
   }
 }
 
@@ -384,6 +390,9 @@ function addTier(statIndex) {
   // 重新渲染该状态的tier列表
   const tierList = $(`#tierList_${statIndex}`);
   tierList.html(renderTierList(statsData.states[statIndex].tier, statIndex));
+
+  // 自动保存
+  autoSaveStatsData(true); // 显示通知
 }
 
 // 删除tier
@@ -394,7 +403,33 @@ function deleteTier(statIndex, tierIndex) {
     // 重新渲染该状态的tier列表
     const tierList = $(`#tierList_${statIndex}`);
     tierList.html(renderTierList(statsData.states[statIndex].tier, statIndex));
+
+    // 自动保存
+    autoSaveStatsData(true); // 显示通知
   }
+}
+
+// 自动保存配置
+function autoSaveStatsData(showNotification = false) {
+  extension_settings[extensionName].statsData = JSON.parse(JSON.stringify(statsData));
+
+  // 同步所有角色的状态值与当前配置
+  syncAvatarStatsWithConfig();
+
+  // 如果角色管理弹层已打开，更新角色表格显示
+  if ($("#avatarManagerModal").is(':visible')) {
+    $(document).trigger('avatarManagerRefresh');
+  }
+
+  // 更新主页面总结提示词中的状态监控部分
+  updateMainPromptWithStats();
+
+  saveSettingsDebounced();
+
+  if (showNotification) {
+    toastr.success('配置已自动保存', '状态管理');
+  }
+  console.log('状态数据已自动保存:', statsData);
 }
 
 // 更新状态名称
@@ -416,12 +451,18 @@ function updateStatName(index, value) {
   // 更新面板标题
   $(`.stat-panel[data-index="${index}"] .stat-panel-title`).text(value || '未命名状态');
   updatePromptPreview();
+
+  // 自动保存
+  autoSaveStatsData();
 }
 
 // 更新状态描述
 function updateStatPrompt(index, value) {
   statsData.states[index].prompt = value;
   updatePromptPreview();
+
+  // 自动保存
+  autoSaveStatsData();
 }
 
 // 更新tier名称
@@ -430,21 +471,33 @@ function updateTierName(statIndex, tierIndex, value) {
   // 更新tier标题
   $(`.stat-panel[data-index="${statIndex}"] .tier-item[data-tier-index="${tierIndex}"] .tier-item-title`)
     .text(value || '未命名等级');
+
+  // 自动保存
+  autoSaveStatsData();
 }
 
 // 更新tier最小值
 function updateTierFrom(statIndex, tierIndex, value) {
   statsData.states[statIndex].tier[tierIndex].from = parseInt(value) || 0;
+
+  // 自动保存
+  autoSaveStatsData();
 }
 
 // 更新tier最大值
 function updateTierTo(statIndex, tierIndex, value) {
   statsData.states[statIndex].tier[tierIndex].to = parseInt(value) || 0;
+
+  // 自动保存
+  autoSaveStatsData();
 }
 
 // 更新tier描述
 function updateTierPrompt(statIndex, tierIndex, value) {
   statsData.states[statIndex].tier[tierIndex].prompt = value;
+
+  // 自动保存
+  autoSaveStatsData();
 }
 
 // 保存状态数据
@@ -466,7 +519,7 @@ function saveStatsData() {
 
   const message = promptUpdated ? '状态配置已保存，提示词已更新，角色状态已同步' : '状态配置已保存，角色状态已同步';
   toastr.success(message, '状态管理');
-  console.log('状态数据已保存:', statsData);
+  console.log('状态数据已手动保存:', statsData);
 }
 
 // 恢复默认数据
@@ -525,10 +578,8 @@ function loadDefaultStats() {
     bindStatEvents();
     updatePromptPreview();
 
-    // 更新主页面总结提示词中的状态监控部分
-    updateMainPromptWithStats();
-
-    toastr.success('已恢复默认配置，角色状态已同步', '状态管理');
+    // 自动保存
+    autoSaveStatsData(true); // 显示通知
   }
 }
 
