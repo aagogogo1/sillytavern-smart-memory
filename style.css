@@ -835,8 +835,8 @@
     border: 1px solid #ccc;
     border-radius: 3px;
     font-size: 13px;
-    color: #333;
-    background-color: #fff;
+    color: #000000 !important;
+    background-color: #ffffff !important;
     resize: vertical;
     box-sizing: border-box;
 }
@@ -970,6 +970,16 @@
     font-size: 12px;
     resize: vertical;
     box-sizing: border-box;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
+
+/* 确保所有状态管理相关的textarea都有正确的样式 */
+.stat-setting-content textarea,
+.tier-prompt-row textarea,
+.stat-form-row textarea {
+    background-color: #ffffff !important;
+    color: #000000 !important;
 }
 
 /* 提示词预览样式 */
