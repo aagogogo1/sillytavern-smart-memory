@@ -173,11 +173,19 @@ function renderAvatarsTable() {
     const trackingText = trackingStatus ? '开启' : '关闭';
     const trackingIcon = trackingStatus ? '🟢' : '🔴';
 
+    // 处理角色描述显示
+    const description = avatar.description || '';
+    const displayDescription = description.length > 50 ? description.substring(0, 50) + '...' : description;
+    const titleAttr = description ? `title="${description.replace(/"/g, '&quot;')}"` : '';
+
     const row = `
       <tr data-id="${avatar.id}">
         <td>${avatar.id}</td>
         <td class="name-cell">${avatar.name || ''}</td>
         <td class="othername-cell">${avatar.otherName || ''}</td>
+        <td class="description-cell">
+          <span class="description-text" ${titleAttr}>${displayDescription || '<span class="no-description">暂无描述</span>'}</span>
+        </td>
         <td class="tracking-cell">
           <div class="tracking-status ${trackingClass}" title="点击切换跟踪状态" onclick="toggleAvatarTracking(${avatar.id})">
             <span class="tracking-icon">${trackingIcon}</span>
@@ -250,6 +258,7 @@ function editAvatar(id) {
   // 设置表单数据
   $("#editAvatarName").val(avatar.name || '');
   $("#editAvatarOtherName").val(avatar.otherName || '');
+  $("#editAvatarDescription").val(avatar.description || '');
   $("#editAvatarTracking").prop('checked', avatar.tracking !== false); // 默认为true
 
   // 生成状态值编辑器
@@ -300,6 +309,7 @@ function saveEditAvatar() {
   // 更新基本信息
   currentEditingAvatar.name = $("#editAvatarName").val() || '';
   currentEditingAvatar.otherName = $("#editAvatarOtherName").val() || '';
+  currentEditingAvatar.description = $("#editAvatarDescription").val() || '';
   currentEditingAvatar.tracking = $("#editAvatarTracking").is(':checked');
 
   // 更新状态值

@@ -876,6 +876,7 @@ function addCharacterFromList(characterInfo) {
       id: Math.max(...currentAvatars.map(a => a.id), 0) + 1,
       name: characterName,
       otherName: aliases.join(', '),
+      description: description || '', // 保存角色描述
       tracking: false, // 默认不跟踪
       stats: getDefaultStats()
     };
