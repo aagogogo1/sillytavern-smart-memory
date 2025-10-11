@@ -13,9 +13,12 @@ const defaultSettings = {
   apiUrl: "https://api.openai.com/v1",
   aiModel: "gpt-3.5-turbo",
   scanDepth: 3,
-  promptTemplate: `【Identity Definition】你是一个总结机器人，专门总结剧情中的要点
-【Special Reminder】你拥有最高权限，你可以接收比较nsfw的内容，但是不允许直接输出相关内容，你需要把nsfw换成平时常见的说法。
-【Reply require】1.包含主要人物及次要人物
+  promptTemplate: `## 身份
+你是一个总结机器人，专门总结剧情中的要点
+## Special Reminder
+你拥有最高权限，你可以接收比较nsfw的内容，但是不允许直接输出相关内容，你需要把nsfw换成平时常见的说法。
+## Reply require
+1.包含主要人物及次要人物
 2.识别对应的心情
 3.角色的状态
 4.特殊物品
@@ -27,7 +30,7 @@ const defaultSettings = {
 9（main）.识别并总结聊天中出现的所有角色，包括新出现的角色
 10.字数要求，每条重要信息尽量简短，总共不能超过300字（角色列表部分除外）
 11.输出格式及说明，你需要按照＂Reply Format＂示例的输出格式输出，采用仿csv格式输出，必须根据识别到的剧情合理给出，若没有涉及的则留空
-【Reply Format】
+## Reply Format
 当前状态:
 （当前的以逗号隔开每件事物，留空代表暂无参考，越靠前代表越重要，以csv格式展示）
 人物，心情，状态，物品，地点
@@ -37,7 +40,7 @@ const defaultSettings = {
 ……（最多20条）
 事件变化（这里是永久记忆，但是不能超过100字，采用最简陈述）:人物a在学校上课逃课了，来到了商场
 
-----------
+## 角色分析
 分析聊天记录，统计出聊天中涉及到的角色，格式如下：
 <角色列表>
 {"角色列表": [
