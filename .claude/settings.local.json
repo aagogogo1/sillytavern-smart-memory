@@ -1,7 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Read(//h/AI/SillyTavern-Launcher/SillyTavern/**)",
+      "Bash(for:*)",
+      "Bash(do:*)",
+      "Bash(done)",
+      "Bash([ \"$dir\" != \"sillytavern-smart-memory/\" ])",
+      "Bash(then echo \"=== $dir ===\")",
+      "Bash(head:*)",
+      "Bash(break)",
+      "Bash(fi)"
     ],
     "deny": [],
     "ask": []

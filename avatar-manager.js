@@ -1,14 +1,55 @@
-import { extension_settings } from "../../../extensions.js";
-import { saveSettingsDebounced } from "../../../../script.js";
+import { extension_settings, getContext } from "../../../extensions.js";
+import { saveSettingsDebounced, eventSource, event_types } from "../../../../script.js";
 
 // 扩展配置
 const extensionName = "sillytavern-smart-memory";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 
-// 角色管理数据
-let avatarsData = [];
+// 角色管理数据 - 按聊天分组
+let allAvatarsData = {}; // 按聊天ID分组的角色数据
+let currentChatId = null;
+let currentCharacterName = null;
+let avatarsData = []; // 当前聊天的角色数据
 let nextAvatarId = 1;
 let currentEditingAvatar = null;
+
+// 获取当前聊天的唯一标识
+function getCurrentChatId() {
+  const context = getContext();
+  const characterName = context?.name2 || "default";
+  const chatId = context?.chatId || characterName; // 如果没有chatId，使用角色名
+  return `${characterName}_${chatId}`;
+}
+
+// 获取当前角色名
+function getCurrentCharacterName() {
+  const context = getContext();
+  return context?.name2 || "默认角色";
+}
+
+// 切换到指定聊天的角色数据
+function switchToChatData(chatId) {
+  // 保存当前聊天的数据
+  if (currentChatId && avatarsData.length > 0) {
+    allAvatarsData[currentChatId] = [...avatarsData];
+  }
+
+  // 切换到新聊天
+  currentChatId = chatId;
+  currentCharacterName = getCurrentCharacterName();
+
+  // 加载新聊天的数据
+  avatarsData = allAvatarsData[chatId] || [];
+
+  // 重新计算nextAvatarId
+  if (avatarsData.length > 0) {
+    nextAvatarId = Math.max(...avatarsData.map(a => a.id), 0) + 1;
+  } else {
+    nextAvatarId = 1;
+  }
+
+  console.log(`角色管理: 切换到聊天 ${chatId}，角色数量: ${avatarsData.length}`);
+}
 
 // 显示角色管理弹层
 export async function showAvatarManagerModal() {
@@ -70,17 +111,30 @@ function closeAvatarManagerModal() {
 
 // 初始化角色管理界面
 function initAvatarManager() {
-  // 加载保存的数据
-  if (extension_settings[extensionName]?.avatarsData) {
-    avatarsData = extension_settings[extensionName].avatarsData;
-    nextAvatarId = Math.max(...avatarsData.map(a => a.id), 0) + 1;
+  // 获取当前聊天ID
+  const chatId = getCurrentChatId();
+
+  // 加载保存的数据（兼容旧格式）
+  if (extension_settings[extensionName]?.allAvatarsData) {
+    allAvatarsData = extension_settings[extensionName].allAvatarsData;
+  } else if (extension_settings[extensionName]?.avatarsData) {
+    // 兼容旧数据格式，迁移到新的分组结构
+    allAvatarsData = { 'default': extension_settings[extensionName].avatarsData };
+    extension_settings[extensionName].allAvatarsData = allAvatarsData;
+    delete extension_settings[extensionName].avatarsData; // 删除旧数据
   }
+
+  // 切换到当前聊天的数据
+  switchToChatData(chatId);
 
   // 确保角色状态与当前配置同步
   syncAvatarStatsWithConfig();
 
   renderAvatarsTable();
   bindAvatarEvents();
+
+  // 更新聊天信息显示
+  updateChatInfoDisplay();
 }
 
 // 绑定角色管理事件
@@ -297,10 +351,16 @@ function deleteAvatar(id) {
 
 // 保存角色数据
 function saveAvatarsData() {
-  extension_settings[extensionName].avatarsData = JSON.parse(JSON.stringify(avatarsData));
+  // 保存当前聊天的数据到总数据中
+  if (currentChatId) {
+    allAvatarsData[currentChatId] = JSON.parse(JSON.stringify(avatarsData));
+  }
+
+  // 保存所有聊天数据
+  extension_settings[extensionName].allAvatarsData = JSON.parse(JSON.stringify(allAvatarsData));
   saveSettingsDebounced();
   toastr.success('角色数据已保存', '角色管理');
-  console.log('角色数据已保存:', avatarsData);
+  console.log('角色数据已保存:', { currentChatId, avatarsData, allAvatarsCount: Object.keys(allAvatarsData).length });
 }
 
 // 导出角色数据
@@ -491,18 +551,24 @@ export function setAvatarManagerDependencies(dependencies) {
 
 // 导出角色数据供其他模块使用
 export function getAvatarsData() {
-  // 确保返回最新的数据，从扩展设置中同步
-  if (extension_settings[extensionName]?.avatarsData) {
-    // 如果扩展设置中的数据与本地数据不同，更新本地数据
-    const settingsData = extension_settings[extensionName].avatarsData;
-    if (JSON.stringify(settingsData) !== JSON.stringify(avatarsData)) {
-      console.log('角色管理: 从扩展设置同步角色数据');
-      avatarsData = settingsData;
-      if (avatarsData && avatarsData.length > 0) {
-        nextAvatarId = Math.max(...avatarsData.map(a => a.id || 0), 0) + 1;
-      }
+  // 确保当前聊天ID是最新的
+  const newChatId = getCurrentChatId();
+  if (newChatId !== currentChatId) {
+    // 如果聊天ID发生了变化，切换到新的聊天数据
+    switchToChatData(newChatId);
+  }
+
+  // 从扩展设置中同步最新的数据
+  if (extension_settings[extensionName]?.allAvatarsData) {
+    const allData = extension_settings[extensionName].allAvatarsData;
+    if (JSON.stringify(allData) !== JSON.stringify(allAvatarsData)) {
+      console.log('角色管理: 从扩展设置同步所有角色数据');
+      allAvatarsData = allData;
+      // 重新加载当前聊天的数据
+      switchToChatData(currentChatId);
     }
   }
+
   return avatarsData;
 }
 
@@ -513,3 +579,33 @@ export function updateAvatarsData(newData) {
     nextAvatarId = Math.max(...avatarsData.map(a => a.id), 0) + 1;
   }
 }
+
+// 更新聊天信息显示
+function updateChatInfoDisplay() {
+  const chatNameElement = $("#currentChatName");
+  if (chatNameElement.length > 0) {
+    const characterName = getCurrentCharacterName();
+    const chatId = getCurrentChatId();
+    chatNameElement.text(`${characterName} (${chatId})`);
+    console.log(`角色管理: 更新聊天信息显示 - ${characterName} (${chatId})`);
+  }
+}
+
+// 监听聊天切换事件
+eventSource.on(event_types.CHAT_CHANGED, () => {
+  const newChatId = getCurrentChatId();
+  console.log(`角色管理: 检测到聊天切换，从 ${currentChatId} 切换到 ${newChatId}`);
+
+  // 切换角色管理数据
+  switchToChatData(newChatId);
+
+  // 如果角色管理弹层正在显示，刷新表格和聊天信息
+  if ($("#avatarManagerModal").is(':visible')) {
+    renderAvatarsTable();
+    updateChatInfoDisplay();
+    toastr.info(`已切换到角色: ${getCurrentCharacterName()}`, '聊天切换');
+  }
+
+  // 触发刷新事件，让其他组件也知道角色数据已更新
+  $(document).trigger('avatarManagerRefresh');
+});
