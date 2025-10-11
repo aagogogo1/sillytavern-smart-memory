@@ -988,7 +988,21 @@ function generateCurrentStatusContent(updatedAvatars) {
 
   console.log('状态生成: 开始生成角色当前状态内容，角色数据:', updatedAvatars);
 
-  const statusDescriptions = updatedAvatars.map(avatar => {
+  // 过滤出开启跟踪的角色
+  const trackedAvatars = updatedAvatars.filter(avatar => {
+    const isTracking = avatar.tracking !== false; // 默认为true
+    console.log(`状态生成: 角色 "${avatar.name}" 跟踪状态: ${isTracking ? '开启' : '关闭'}`);
+    return isTracking;
+  });
+
+  console.log(`状态生成: 过滤后的角色数量: ${trackedAvatars.length}/${updatedAvatars.length}`);
+
+  if (trackedAvatars.length === 0) {
+    console.log('状态生成: 没有开启跟踪的角色，跳过状态生成');
+    return '';
+  }
+
+  const statusDescriptions = trackedAvatars.map(avatar => {
     const statusTexts = [];
 
     console.log(`状态生成: 处理角色 "${avatar.name}"，状态:`, avatar.stats);

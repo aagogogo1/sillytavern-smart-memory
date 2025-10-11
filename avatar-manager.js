@@ -114,11 +114,22 @@ function renderAvatarsTable() {
       .map(([key, value]) => `${key}:${value}`)
       .join(', ');
 
+    const trackingStatus = avatar.tracking !== false; // 默认为true
+    const trackingClass = trackingStatus ? 'tracking-enabled' : 'tracking-disabled';
+    const trackingText = trackingStatus ? '开启' : '关闭';
+    const trackingIcon = trackingStatus ? '🟢' : '🔴';
+
     const row = `
       <tr data-id="${avatar.id}">
         <td>${avatar.id}</td>
         <td class="name-cell">${avatar.name || ''}</td>
         <td class="othername-cell">${avatar.otherName || ''}</td>
+        <td class="tracking-cell">
+          <div class="tracking-status ${trackingClass}" title="点击切换跟踪状态" onclick="toggleAvatarTracking(${avatar.id})">
+            <span class="tracking-icon">${trackingIcon}</span>
+            <span class="tracking-text">${trackingText}</span>
+          </div>
+        </td>
         <td class="stats-cell">${statsText}</td>
         <td class="actions-cell">
           <button class="btn-small btn-primary" onclick="editAvatar(${avatar.id})">编辑</button>
@@ -136,6 +147,7 @@ function addNewAvatar() {
     id: nextAvatarId++,
     name: "新角色",
     otherName: "",
+    tracking: true, // 默认开启跟踪
     stats: getDefaultStats()
   };
 
@@ -184,6 +196,7 @@ function editAvatar(id) {
   // 设置表单数据
   $("#editAvatarName").val(avatar.name || '');
   $("#editAvatarOtherName").val(avatar.otherName || '');
+  $("#editAvatarTracking").prop('checked', avatar.tracking !== false); // 默认为true
 
   // 生成状态值编辑器
   renderStatsEditor(avatar.stats || {});
@@ -233,6 +246,7 @@ function saveEditAvatar() {
   // 更新基本信息
   currentEditingAvatar.name = $("#editAvatarName").val() || '';
   currentEditingAvatar.otherName = $("#editAvatarOtherName").val() || '';
+  currentEditingAvatar.tracking = $("#editAvatarTracking").is(':checked');
 
   // 更新状态值
   const newStats = {};
@@ -345,9 +359,29 @@ function importAvatarsData() {
   input.click();
 }
 
+// 切换角色跟踪状态
+function toggleAvatarTracking(id) {
+  const avatar = avatarsData.find(a => a.id === id);
+  if (!avatar) return;
+
+  // 切换跟踪状态
+  avatar.tracking = !avatar.tracking;
+
+  // 重新渲染表格
+  renderAvatarsTable();
+
+  // 保存数据
+  saveAvatarsData();
+
+  // 显示提示
+  const status = avatar.tracking ? '已开启' : '已关闭';
+  toastr.success(`${avatar.name || '角色'}跟踪${status}`, '操作成功');
+}
+
 // 将角色管理函数设为全局函数
 window['editAvatar'] = editAvatar;
 window['deleteAvatar'] = deleteAvatar;
+window['toggleAvatarTracking'] = toggleAvatarTracking;
 
 // 监听刷新事件
 $(document).on('avatarManagerRefresh', function() {
