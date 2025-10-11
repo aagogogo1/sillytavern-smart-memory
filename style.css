@@ -1130,6 +1130,37 @@ input:checked + .slider:before {
     max-width: 200px;
 }
 
+/* 角色发现信息样式 */
+.discovery-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background-color: #e8f5e8;
+    border-radius: 4px;
+    border-left: 3px solid #28a745;
+}
+
+.discovery-label {
+    font-size: 11px;
+    color: #666;
+    font-weight: 500;
+}
+
+.discovery-status {
+    font-size: 12px;
+    color: #28a745;
+    font-weight: 600;
+}
+
+.discovery-status.processing {
+    color: #ffc107;
+}
+
+.discovery-status.error {
+    color: #dc3545;
+}
+
 /* 聊天信息样式 */
 .chat-info {
     display: flex;

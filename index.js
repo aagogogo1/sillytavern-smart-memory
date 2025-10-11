@@ -1,7 +1,7 @@
 import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
 import { saveSettingsDebounced, eventSource, event_types } from "../../../../script.js";
-import { showStatSettingModal, parseAndUpdateAvatarStats } from "./stats-manager.js";
-import { showAvatarManagerModal } from "./avatar-manager.js";
+import { showStatSettingModal, parseAndUpdateAvatarStats, parseAndUpdateCharacterList } from "./stats-manager.js";
+import { showAvatarManagerModal, setDiscoveryStatusProcessing, setDiscoveryStatusSuccess, setDiscoveryStatusError } from "./avatar-manager.js";
 
 // 扩展配置
 const extensionName = "sillytavern-smart-memory";
@@ -24,8 +24,9 @@ const defaultSettings = {
 7（main）.你需要增量式更新信息
 8（main）.动态记忆:采取换行策略代表重要性，距离首行越远的越不重要，超过20条以外的信息视为不重要，直接舍去，其余保留
 永久记忆:放在动态记忆之后，用一句话记录要点，包含重要的变化状态
-9.字数要求，每条重要信息尽量简短，总共不能超过300字
-10.输出格式及说明，你需要按照＂Reply Format＂示例的输出格式输出，采用仿csv格式输出，必须根据识别到的剧情合理给出，若没有涉及的则留空
+9（main）.识别并总结聊天中出现的所有角色，包括新出现的角色
+10.字数要求，每条重要信息尽量简短，总共不能超过300字（角色列表部分除外）
+11.输出格式及说明，你需要按照＂Reply Format＂示例的输出格式输出，采用仿csv格式输出，必须根据识别到的剧情合理给出，若没有涉及的则留空
 【Reply Format】
 当前状态:
 （当前的以逗号隔开每件事物，留空代表暂无参考，越靠前代表越重要，以csv格式展示）
@@ -34,7 +35,27 @@ const defaultSettings = {
 人物b，，看见了人物a，，商场
 人物c，高兴，吃饭时想到好笑的事，盖饭，饭店
 ……（最多20条）
-事件变化（这里是永久记忆，但是不能超过100字，采用最简陈述）:人物a在学校上课逃课了，来到了商场`,
+事件变化（这里是永久记忆，但是不能超过100字，采用最简陈述）:人物a在学校上课逃课了，来到了商场
+
+=== 角色监控提示词 ===
+分析聊天记录，统计出聊天中涉及到的角色，格式如下：
+```
+<角色列表>
+{"角色列表": [
+  {
+    "角色名": "张大力",
+    "别名": ["大力", "阿张"],
+    "角色描述": "身材高大、性格豪爽的年轻人，喜欢帮助朋友，是故事的主角"
+  },
+  {
+    "角色名": "小红",
+    "别名": ["红红"],
+    "角色描述": "温柔善良的女孩，擅长烹饪，对朋友很关心"
+  }
+]}
+</角色列表>
+```
+注意：角色列表必须使用上述JSON格式，严格按照角色名、别名（数组格式）、角色描述的结构返回。如果没有新角色出现，角色列表可以为空数组。`,
   injectionContent: "",
   enabled: true,
   autoUpdate: true,
@@ -203,7 +224,10 @@ async function summarizeMessages() {
     console.log(`智能总结: 发送API请求到 ${apiUrl}/chat/completions`);
     console.log(`智能总结: 使用模型: ${model}`);
     console.log(`智能总结: 包含前任总结: ${previousSummary ? '是' : '否'}`)
-    
+
+    // 设置角色发现状态为处理中
+    setDiscoveryStatusProcessing("AI分析聊天角色中...");
+
     const response = await fetch(`${apiUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -239,8 +263,24 @@ async function summarizeMessages() {
       const summaryPreview = summary.substring(0, 100) + (summary.length > 100 ? "..." : "");
       console.log(`智能总结: 已完成总结: "${summaryPreview}"`);
       console.log(`智能总结: 完整总结内容长度: ${summary.length} 字符`);
-      
-      // 解析和更新角色状态数据，并获取替换后的总结内容
+
+      // 首先解析和更新角色列表
+      console.log('智能总结: 开始解析角色列表...');
+      const characterListResult = parseAndUpdateCharacterList(summary);
+      summary = characterListResult.summary;
+      const addedCharactersCount = characterListResult.addedCount || 0;
+      console.log(`智能总结: 角色列表解析完成，添加了 ${addedCharactersCount} 个新角色`);
+
+      // 更新角色发现状态
+      if (addedCharactersCount > 0) {
+        setDiscoveryStatusSuccess(addedCharactersCount);
+        toastr.success(`AI发现了 ${addedCharactersCount} 个新角色`, '角色发现');
+      } else {
+        // 即使没有新角色，也更新状态显示
+        setDiscoveryStatusSuccess(0);
+      }
+
+      // 然后解析和更新角色状态数据，并获取替换后的总结内容
       summary = parseAndUpdateAvatarStats(summary);
       
       // 更新注入内容
@@ -301,6 +341,9 @@ async function summarizeMessages() {
   } catch (error) {
     console.error("总结失败:", error);
     toastr.error(`总结失败: ${error.message}`, "智能总结");
+
+    // 设置角色发现状态为错误
+    setDiscoveryStatusError("AI分析失败");
   }
 }
 

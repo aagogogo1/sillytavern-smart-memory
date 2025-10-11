@@ -765,6 +765,157 @@ window['updateTierFrom'] = updateTierFrom;
 window['updateTierTo'] = updateTierTo;
 window['updateTierPrompt'] = updateTierPrompt;
 
+// ===== 角色列表解析功能 =====
+
+// 解析总结内容中的角色列表并添加新角色
+export function parseAndUpdateCharacterList(summaryContent) {
+  try {
+    console.log('角色列表解析: 开始解析总结内容中的角色列表');
+
+    // 使用正则表达式提取<角色列表>标签中的内容
+    const regexWithBackticks = /<角色列表>`(.+?)`<\/角色列表>/s;
+    const regexDirect = /<角色列表>\s*([\s\S]*?)\s*<\/角色列表>/s;
+
+    let match = summaryContent.match(regexWithBackticks);
+    if (!match) {
+      match = summaryContent.match(regexDirect);
+    }
+
+    if (!match) {
+      console.log('角色列表解析: 未找到角色列表标签');
+      return { summary: summaryContent, addedCount: 0 };
+    }
+
+    const characterListContent = match[1].trim();
+    console.log('角色列表解析: 找到角色列表内容:', characterListContent);
+
+    // 解析JSON内容
+    let characterData;
+    try {
+      characterData = JSON.parse(characterListContent);
+      console.log('角色列表解析: 成功解析JSON数据:', characterData);
+    } catch (jsonError) {
+      console.error('角色列表解析: JSON解析失败:', jsonError.message);
+      console.error('角色列表解析: 原始内容:', characterListContent);
+      return { summary: summaryContent, addedCount: 0 };
+    }
+
+    // 验证数据结构
+    if (!characterData || !Array.isArray(characterData.角色列表)) {
+      console.warn('角色列表解析: 数据格式不正确，需要包含角色列表数组');
+      return { summary: summaryContent, addedCount: 0 };
+    }
+
+    const characters = characterData.角色列表;
+    console.log(`角色列表解析: 发现 ${characters.length} 个角色`);
+
+    if (characters.length === 0) {
+      console.log('角色列表解析: 角色列表为空，无需处理');
+      return { summary: summaryContent, addedCount: 0 };
+    }
+
+    // 处理每个角色
+    let addedCount = 0;
+    characters.forEach(character => {
+      const result = addCharacterFromList(character);
+      if (result.success) {
+        addedCount++;
+      }
+    });
+
+    console.log(`角色列表解析: 成功添加了 ${addedCount} 个新角色`);
+
+    // 从总结内容中移除角色列表标签（可选，保持内容清洁）
+    const newSummaryContent = summaryContent.replace(match[0], '');
+    console.log('角色列表解析: 已从总结中移除角色列表标签');
+
+    return {
+      summary: newSummaryContent,
+      addedCount: addedCount
+    };
+
+  } catch (error) {
+    console.error('角色列表解析: 解析过程出错:', error);
+    return { summary: summaryContent, addedCount: 0 };
+  }
+}
+
+// 根据角色列表信息添加新角色
+function addCharacterFromList(characterInfo) {
+  try {
+    if (!characterInfo.角色名) {
+      console.warn('角色添加: 角色信息缺少角色名，跳过:', characterInfo);
+      return { success: false, reason: '缺少角色名' };
+    }
+
+    const characterName = characterInfo.角色名.trim();
+    const aliases = Array.isArray(characterInfo.别名) ? characterInfo.别名 : [];
+    const description = characterInfo.角色描述 || '';
+
+    console.log(`角色添加: 尝试添加角色 "${characterName}"`);
+
+    // 获取当前角色数据
+    const currentAvatars = getAvatarsData();
+
+    // 检查角色是否已存在
+    const existingAvatar = currentAvatars.find(avatar =>
+      avatar.name === characterName ||
+      (avatar.otherName && avatar.otherName.split(',').some(alias =>
+        alias.trim() === characterName || aliases.includes(alias.trim())
+      )) ||
+      aliases.some(alias => avatar.name === alias.trim())
+    );
+
+    if (existingAvatar) {
+      console.log(`角色添加: 角色 "${characterName}" 已存在，跳过添加`);
+      return { success: false, reason: '角色已存在' };
+    }
+
+    // 创建新角色
+    const newAvatar = {
+      id: Math.max(...currentAvatars.map(a => a.id), 0) + 1,
+      name: characterName,
+      otherName: aliases.join(', '),
+      tracking: false, // 默认不跟踪
+      stats: getDefaultStats()
+    };
+
+    // 添加到角色列表
+    currentAvatars.push(newAvatar);
+    updateAvatarsData(currentAvatars);
+
+    console.log(`角色添加: 成功添加新角色 "${characterName}"，别名: [${aliases.join(', ')}]`);
+
+    // 触发界面更新
+    $(document).trigger('avatarManagerRefresh');
+
+    return { success: true, avatar: newAvatar };
+
+  } catch (error) {
+    console.error('角色添加: 添加角色时出错:', error);
+    return { success: false, reason: error.message };
+  }
+}
+
+// 获取默认状态值
+function getDefaultStats() {
+  // 获取当前配置的状态
+  let currentStatsData = statsData;
+  if (!currentStatsData || !currentStatsData.states) {
+    currentStatsData = extension_settings[extensionName]?.statsData;
+  }
+
+  const defaultStats = {};
+
+  if (currentStatsData && currentStatsData.states) {
+    currentStatsData.states.forEach(stat => {
+      defaultStats[stat.statName] = 0;
+    });
+  }
+
+  return defaultStats;
+}
+
 // ===== 状态解析和更新功能 =====
 
 // 解析总结内容中的状态数据并更新角色状态

@@ -589,6 +589,60 @@ function updateChatInfoDisplay() {
     chatNameElement.text(`${characterName} (${chatId})`);
     console.log(`角色管理: 更新聊天信息显示 - ${characterName} (${chatId})`);
   }
+
+  // 更新发现状态显示
+  updateDiscoveryStatus();
+}
+
+// 更新角色发现状态显示
+function updateDiscoveryStatus() {
+  const discoveryStatusElement = $("#discoveryStatus");
+  if (discoveryStatusElement.length > 0) {
+    const currentAvatars = getAvatarsData();
+    const totalCount = currentAvatars.length;
+    const trackedCount = currentAvatars.filter(a => a.tracking !== false).length;
+
+    discoveryStatusElement.text(`${totalCount} 个角色 (${trackedCount} 个跟踪)`);
+    discoveryStatusElement.removeClass('processing error');
+
+    console.log(`角色管理: 更新发现状态 - 总计${totalCount}个角色，${trackedCount}个跟踪`);
+  }
+}
+
+// 设置角色发现状态为处理中
+export function setDiscoveryStatusProcessing(message = "AI分析中...") {
+  const discoveryStatusElement = $("#discoveryStatus");
+  if (discoveryStatusElement.length > 0) {
+    discoveryStatusElement.text(message);
+    discoveryStatusElement.addClass('processing').removeClass('error');
+  }
+}
+
+// 设置角色发现状态为成功
+export function setDiscoveryStatusSuccess(addedCount) {
+  const discoveryStatusElement = $("#discoveryStatus");
+  if (discoveryStatusElement.length > 0) {
+    const currentAvatars = getAvatarsData();
+    const totalCount = currentAvatars.length;
+    const trackedCount = currentAvatars.filter(a => a.tracking !== false).length;
+
+    discoveryStatusElement.text(`发现 ${addedCount} 个新角色，总计 ${totalCount} 个 (${trackedCount} 个跟踪)`);
+    discoveryStatusElement.removeClass('processing error');
+
+    // 3秒后恢复常规状态
+    setTimeout(() => {
+      updateDiscoveryStatus();
+    }, 3000);
+  }
+}
+
+// 设置角色发现状态为错误
+export function setDiscoveryStatusError(message = "角色发现失败") {
+  const discoveryStatusElement = $("#discoveryStatus");
+  if (discoveryStatusElement.length > 0) {
+    discoveryStatusElement.text(message);
+    discoveryStatusElement.addClass('error').removeClass('processing');
+  }
 }
 
 // 监听聊天切换事件
