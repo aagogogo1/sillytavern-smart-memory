@@ -1132,6 +1132,59 @@ export function parseAndUpdateAvatarStats(summaryContent) {
   }
 }
 
+// 生成角色信息部分
+function generateCharacterInfoSection(trackedAvatars) {
+  console.log('角色信息生成: 开始生成角色信息部分');
+
+  const characterInfo = trackedAvatars.map(avatar => {
+    const name = avatar.name || '';
+    const description = avatar.description || '';
+    const aliases = avatar.otherName ? avatar.otherName.split(',').map(a => a.trim()).filter(a => a) : [];
+
+    // 构建角色信息：角色名:描述 [别名]
+    let infoLine = name;
+
+    if (description) {
+      infoLine += `:${description}`;
+    }
+
+    if (aliases.length > 0) {
+      infoLine += ` [别名:${aliases.join(',')}]`;
+    }
+
+    console.log(`角色信息生成: ${infoLine}`);
+    return infoLine;
+  });
+
+  const characterInfoSection = characterInfo.join('\n');
+  console.log(`角色信息生成: 生成的角色信息部分:\n${characterInfoSection}`);
+
+  return characterInfoSection;
+}
+
+// 组合角色信息和状态内容
+function combineCharacterInfoAndStatus(characterInfoSection, statusContent) {
+  console.log('状态生成: 开始组合角色信息和状态内容');
+
+  let result = '';
+
+  // 添加角色信息部分
+  if (characterInfoSection && characterInfoSection.trim()) {
+    result += '【角色信息】\n';
+    result += characterInfoSection;
+    result += '\n\n';
+  }
+
+  // 添加状态内容部分
+  if (statusContent && statusContent.trim()) {
+    result += '【角色当前状态】\n';
+    result += statusContent;
+  }
+
+  console.log(`状态生成: 组合后的完整内容:\n${result}`);
+  return result;
+}
+
 // 生成角色当前状态内容
 function generateCurrentStatusContent(updatedAvatars) {
   if (!updatedAvatars || updatedAvatars.length === 0) {
@@ -1153,6 +1206,9 @@ function generateCurrentStatusContent(updatedAvatars) {
     console.log('状态生成: 没有开启跟踪的角色，跳过状态生成');
     return '';
   }
+
+  // 生成角色信息部分
+  const characterInfoSection = generateCharacterInfoSection(trackedAvatars);
 
   const statusDescriptions = trackedAvatars.map(avatar => {
     const statusTexts = [];
@@ -1219,7 +1275,10 @@ function generateCurrentStatusContent(updatedAvatars) {
   }).filter(Boolean); // 过滤掉空值
 
   // 用换行符连接多个角色
-  const finalResult = statusDescriptions.join('\n');
+  const statusContent = statusDescriptions.join('\n');
+
+  // 组合角色信息和状态内容
+  const finalResult = combineCharacterInfoAndStatus(characterInfoSection, statusContent);
   console.log('状态生成: 最终生成的角色状态内容:', finalResult);
   return finalResult;
 }
