@@ -1,0 +1,134 @@
+<div class="status-summary-content">
+    <div class="status-summary-header">
+        <h3>状态摘要设置</h3>
+    </div>
+
+    <!-- 启用开关 -->
+    <div class="setting-item">
+        <label>
+            <input type="checkbox" id="status_summary_enabled" checked />
+            启用状态摘要
+        </label>
+        <small>启用后，AI会分析角色的状态摘要信息</small>
+    </div>
+
+    <hr class="sysHR">
+
+    <!-- 状态类型管理 -->
+    <div class="sub-section">
+        <h4>状态类型管理</h4>
+        <div class="setting-item">
+            <table id="status_types_table" class="responsive-table">
+                <thead>
+                    <tr>
+                        <th>状态类型</th>
+                        <th>字段列表</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="status_types_body">
+                    <!-- 动态生成的状态类型行 -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="setting-item">
+            <div class="flex-row">
+                <input type="text" id="new_status_type_name" placeholder="新状态类型名称" style="flex: 1; min-width: 120px; margin-right: 10px;" />
+                <input type="text" id="new_status_type_fields" placeholder="字段列表（逗号分隔）" style="flex: 2; min-width: 180px; margin-right: 10px;" />
+                <button id="add_status_type" class="menu_button" style="min-width: 80px;">添加类型</button>
+            </div>
+            <small>例如：衣物状态，上衣,裤子,鞋子,配饰</small>
+        </div>
+    </div>
+
+    <hr class="sysHR">
+
+    <!-- 状态摘要数据预览 -->
+    <div class="sub-section">
+        <h4>状态摘要数据</h4>
+        <div class="setting-item">
+            <textarea id="status_summary_data_preview" rows="10" placeholder="状态摘要数据将显示在这里..." readonly></textarea>
+            <small>最近解析的状态摘要数据</small>
+        </div>
+    </div>
+
+    <hr class="sysHR">
+
+    <!-- 按钮 -->
+    <div class="setting-buttons">
+        <button id="refresh_status_summary" class="btn-primary" style="margin-right: 10px;">刷新数据</button>
+        <button id="save_status_summary_settings" class="btn-primary">保存设置</button>
+    </div>
+</div>
+
+<style>
+.status-summary-content .responsive-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 15px;
+}
+
+.status-summary-content .responsive-table th,
+.status-summary-content .responsive-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.status-summary-content .responsive-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+.status-summary-content .status-type-row {
+    background-color: #f9f9f9;
+}
+
+.status-summary-content .status-type-row:hover {
+    background-color: #f0f0f0;
+}
+
+.status-summary-content .flex-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-summary-content .field-list {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.status-summary-content .action-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.status-summary-content .action-buttons button {
+    padding: 2px 6px;
+    font-size: 0.8em;
+}
+
+/* 设置按钮和输入框文字颜色为黑色 */
+.status-summary-content button {
+    color: black !important;
+}
+
+.status-summary-content input[type="text"] {
+    color: black !important;
+}
+
+.status-summary-content textarea {
+    color: black !important;
+}
+
+/* 设置编辑弹窗输入框文字颜色为黑色 */
+#statusTypeEditModal input[type="text"] {
+    color: black !important;
+}
+
+#statusTypeEditModal button {
+    color: black !important;
+}
+</style>

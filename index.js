@@ -2,6 +2,7 @@ import { extension_settings, getContext, loadExtensionSettings } from "../../../
 import { saveSettingsDebounced, eventSource, event_types } from "../../../../script.js";
 import { showStatSettingModal, parseAndUpdateAvatarStats, parseAndUpdateCharacterList } from "./stats-manager.js";
 import { showAvatarManagerModal, setDiscoveryStatusProcessing, setDiscoveryStatusSuccess, setDiscoveryStatusError } from "./avatar-manager.js";
+import { generateStatusSummaryPrompt, parseStatusSummary, loadStatusSummarySettings, saveStatusSummarySettings, addStatusType, removeStatusType } from "./status-summary-manager.js";
 
 // 扩展配置
 const extensionName = "sillytavern-smart-memory";
@@ -262,8 +263,8 @@ async function summarizeMessages() {
       userPromptContent = `之前的对话总结:\n${previousSummary}\n\n请基于上述历史总结，继续总结以下最新对话，形成完整连贯的记忆总结:\n\n${conversationText}`;
     }
     
-    // 构建请求 - 使用固定角色分析提示词确保角色分析功能
-    const systemPrompt = prompt + generateCharacterAnalysisPrompt();
+    // 构建请求 - 使用固定角色分析提示词和状态摘要提示词
+    const systemPrompt = prompt + generateCharacterAnalysisPrompt() + generateStatusSummaryPrompt();
     const requestBody = {
       model: model,
       messages: [
@@ -341,6 +342,15 @@ async function summarizeMessages() {
 
       // 然后解析和更新角色状态数据，并获取替换后的总结内容
       summary = parseAndUpdateAvatarStats(summary);
+
+      // 解析状态摘要数据
+      console.log('智能总结: 开始解析状态摘要...');
+      const statusSummaryResult = parseStatusSummary(summary);
+      if (statusSummaryResult) {
+        console.log('智能总结: 状态摘要解析完成', statusSummaryResult);
+      } else {
+        console.log('智能总结: 未找到状态摘要数据');
+      }
       
       // 更新注入内容
       const context = getContext();
@@ -737,6 +747,11 @@ jQuery(async () => {
   $("#avatar_manager").on("click", async function() {
     await showAvatarManagerModal();
   });
+
+  // 绑定状态摘要设置弹层事件
+  $("#status_summary_setting").on("click", async function() {
+    await showStatusSummaryModal();
+  });
   
   // 模型选择更改时保存
   $("#smart_memory_model").on("change", function() {
@@ -825,6 +840,263 @@ jQuery(async () => {
   console.log("智能总结: 当前版本: 1.0.0");
   console.log("智能总结: 初始设置:", extension_settings[extensionName]);
 });
+
+// 显示状态摘要设置模态框
+async function showStatusSummaryModal() {
+  try {
+    // 加载状态摘要设置HTML
+    const response = await $.get(`${extensionFolderPath}/status-summary.html`);
+
+    // 创建弹层HTML - 使用与现有模态框相同的结构
+    const modalHtml = `
+      <div class="modal-overlay" id="statusSummaryModal">
+        <div class="modal-container">
+          <div class="modal-header">
+            <h3 class="modal-title">状态摘要设置</h3>
+            <button class="modal-close" id="closeStatusSummaryModal">&times;</button>
+          </div>
+          <div class="modal-body">
+            ${response}
+          </div>
+        </div>
+      </div>
+    `;
+
+    // 移除已存在的弹层并添加新的
+    $("#statusSummaryModal").remove();
+    $("body").append(modalHtml);
+
+    // 显示弹层
+    $("#statusSummaryModal").css("display", "flex");
+
+    // 绑定关闭事件
+    $("#closeStatusSummaryModal").on("click", function() {
+      $("#statusSummaryModal").remove();
+    });
+
+    // 点击模态框外部关闭
+    $("#statusSummaryModal").on("click", function(event) {
+      if (event.target === this) {
+        $(this).remove();
+      }
+    });
+
+    // 初始化状态摘要设置界面
+    initializeStatusSummarySettings();
+
+    console.log("状态摘要: 设置界面已打开");
+
+  } catch (error) {
+    console.error("状态摘要: 加载设置界面失败", error);
+    toastr.error("加载状态摘要设置失败", "错误");
+  }
+}
+
+// 初始化状态摘要设置界面
+function initializeStatusSummarySettings() {
+  const settings = loadStatusSummarySettings();
+
+  // 设置启用开关
+  $("#status_summary_enabled").prop("checked", settings.enabled);
+
+  // 渲染状态类型表格
+  renderStatusTypesTable(settings.statusTypes);
+
+  // 更新数据预览
+  updateStatusSummaryDataPreview();
+
+  // 绑定事件
+  bindStatusSummaryEvents();
+}
+
+// 渲染状态类型表格
+function renderStatusTypesTable(statusTypes) {
+  const tbody = $("#status_types_body");
+  tbody.empty();
+
+  if (!statusTypes || statusTypes.length === 0) {
+    tbody.append('<tr><td colspan="3" style="text-align: center;">暂无状态类型</td></tr>');
+    return;
+  }
+
+  statusTypes.forEach((type, index) => {
+    const row = $(`
+      <tr class="status-type-row">
+        <td>${type.name}</td>
+        <td class="field-list">${type.fields.join(', ')}</td>
+        <td>
+          <div class="action-buttons">
+            <button class="edit-status-type" data-index="${index}">编辑</button>
+            <button class="delete-status-type" data-index="${index}">删除</button>
+          </div>
+        </td>
+      </tr>
+    `);
+    tbody.append(row);
+  });
+}
+
+// 更新状态摘要数据预览
+function updateStatusSummaryDataPreview() {
+  const settings = loadStatusSummarySettings();
+  const previewTextarea = $("#status_summary_data_preview");
+
+  if (settings.summaryData && Object.keys(settings.summaryData).length > 0) {
+    previewTextarea.val(JSON.stringify(settings.summaryData, null, 2));
+  } else {
+    previewTextarea.val("暂无状态摘要数据");
+  }
+}
+
+// 绑定状态摘要事件
+function bindStatusSummaryEvents() {
+  // 启用开关
+  $("#status_summary_enabled").on("change", function() {
+    const settings = loadStatusSummarySettings();
+    settings.enabled = $(this).prop("checked");
+    saveStatusSummarySettings();
+    console.log(`状态摘要: 已${settings.enabled ? '启用' : '禁用'}`);
+  });
+
+  // 添加状态类型
+  $("#add_status_type").on("click", function() {
+    const name = $("#new_status_type_name").val().trim();
+    const fieldsText = $("#new_status_type_fields").val().trim();
+
+    if (!name) {
+      toastr.warning("请输入状态类型名称", "提示");
+      return;
+    }
+
+    const fields = fieldsText ? fieldsText.split(/[,，]/).map(f => f.trim()).filter(f => f) : [];
+
+    addStatusType(name, fields);
+
+    // 清空输入框
+    $("#new_status_type_name").val("");
+    $("#new_status_type_fields").val("");
+
+    // 刷新表格
+    const settings = loadStatusSummarySettings();
+    renderStatusTypesTable(settings.statusTypes);
+
+    toastr.success(`已添加状态类型: ${name}`, "成功");
+  });
+
+  // 编辑状态类型
+  $(document).on("click", ".edit-status-type", function() {
+    const index = $(this).data("index");
+    const settings = loadStatusSummarySettings();
+    const type = settings.statusTypes[index];
+
+    // 显示编辑弹层
+    showStatusTypeEditModal(type, index);
+  });
+
+  // 删除状态类型
+  $(document).on("click", ".delete-status-type", function() {
+    const index = $(this).data("index");
+    const settings = loadStatusSummarySettings();
+    const typeName = settings.statusTypes[index].name;
+
+    if (confirm(`确定要删除状态类型 "${typeName}" 吗？`)) {
+      removeStatusType(typeName);
+      renderStatusTypesTable(settings.statusTypes);
+      toastr.success(`已删除状态类型: ${typeName}`, "成功");
+    }
+  });
+
+  // 刷新数据
+  $("#refresh_status_summary").on("click", function() {
+    updateStatusSummaryDataPreview();
+    toastr.info("已刷新状态摘要数据", "提示");
+  });
+
+  // 保存设置
+  $("#save_status_summary_settings").on("click", function() {
+    saveStatusSummarySettings();
+    toastr.success("状态摘要设置已保存", "成功");
+  });
+}
+
+// 显示状态类型编辑模态框
+function showStatusTypeEditModal(type, index) {
+  // 创建编辑弹层HTML
+  const editModalHtml = `
+    <div class="modal-overlay" id="statusTypeEditModal" style="z-index: 10001;">
+      <div class="modal-container" style="max-width: 500px;">
+        <div class="modal-header">
+          <h3 class="modal-title">编辑状态类型</h3>
+          <button class="modal-close" id="closeStatusTypeEditModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="setting-item">
+            <label for="edit_status_type_name">状态类型名称：</label>
+            <input type="text" id="edit_status_type_name" value="${type.name}" style="width: 100%;" />
+          </div>
+          <div class="setting-item">
+            <label for="edit_status_type_fields">字段列表（逗号分隔）：</label>
+            <input type="text" id="edit_status_type_fields" value="${type.fields.join(', ')}" style="width: 100%;" />
+            <small>用逗号分隔多个字段</small>
+          </div>
+          <div class="setting-buttons" style="margin-top: 20px;">
+            <button id="save_status_type_edit" class="btn-primary" style="margin-right: 10px;">保存</button>
+            <button id="cancel_status_type_edit" class="btn-secondary">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 移除已存在的编辑弹层并添加新的
+  $("#statusTypeEditModal").remove();
+  $("body").append(editModalHtml);
+
+  // 显示编辑弹层
+  $("#statusTypeEditModal").css("display", "flex");
+
+  // 绑定关闭事件
+  $("#closeStatusTypeEditModal").on("click", function() {
+    $("#statusTypeEditModal").remove();
+  });
+
+  $("#cancel_status_type_edit").on("click", function() {
+    $("#statusTypeEditModal").remove();
+  });
+
+  // 点击模态框外部关闭
+  $("#statusTypeEditModal").on("click", function(event) {
+    if (event.target === this) {
+      $(this).remove();
+    }
+  });
+
+  // 绑定保存事件
+  $("#save_status_type_edit").on("click", function() {
+    const newName = $("#edit_status_type_name").val().trim();
+    const fieldsText = $("#edit_status_type_fields").val().trim();
+
+    if (!newName) {
+      toastr.warning("请输入状态类型名称", "提示");
+      return;
+    }
+
+    const newFields = fieldsText ? fieldsText.split(/[,，]/).map(f => f.trim()).filter(f => f) : [];
+
+    // 更新状态类型
+    const settings = loadStatusSummarySettings();
+    if (settings.statusTypes[index]) {
+      settings.statusTypes[index].name = newName;
+      settings.statusTypes[index].fields = newFields;
+      saveStatusSummarySettings();
+      renderStatusTypesTable(settings.statusTypes);
+      toastr.success(`已更新状态类型: ${newName}`, "成功");
+    }
+
+    // 关闭编辑弹层
+    $("#statusTypeEditModal").remove();
+  });
+}
 
 
 // 已经在上面export了getInjectionContent，不需要重复导出
