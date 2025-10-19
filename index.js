@@ -7,6 +7,80 @@ import { showAvatarManagerModal, setDiscoveryStatusProcessing, setDiscoveryStatu
 const extensionName = "sillytavern-smart-memory";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 
+// 固定角色分析模板 - 用户无法修改
+const FIXED_CHARACTER_ANALYSIS_TEMPLATE = `
+## 角色分析
+分析聊天记录，统计出聊天中涉及到的角色，用下面的格式返回：
+<角色列表>
+{"角色列表": [
+  {
+    "角色名": "张大力",
+    "别名": ["大力", "阿张"],
+    "角色描述": "身材高大、性格豪爽的年轻人，喜欢帮助朋友，是故事的主角"
+  },
+  {
+    "角色名": "小红",
+    "别名": ["红红"],
+    "角色描述": "温柔善良的女孩，擅长烹饪，对朋友很关心"
+  }
+]}
+</角色列表>
+
+注意：角色列表必须使用上述JSON格式，严格按照角色名、别名（数组格式）、角色描述的结构返回。如果没有新角色出现，角色列表可以为空数组。`;
+
+// 生成角色分析提示词
+function generateCharacterAnalysisPrompt() {
+  return FIXED_CHARACTER_ANALYSIS_TEMPLATE;
+}
+
+// 更新主页面总结提示词中的角色分析部分（参考状态管理的方式）
+function updateMainPromptWithCharacterAnalysis() {
+  // 生成角色分析提示词内容
+  const characterAnalysisPrompt = generateCharacterAnalysisPrompt();
+
+  // 如果有生成的提示词，添加到主页面总结提示词的最下方
+  if (characterAnalysisPrompt && characterAnalysisPrompt.trim()) {
+    const currentPrompt = $("#smart_memory_prompt").val();
+
+    // 检查是否已经包含了角色分析提示词（避免重复添加）
+    const characterPromptMarker = "\n\n=== 角色分析提示词 ===\n";
+
+    let newPrompt = currentPrompt;
+
+    // 如果已经存在角色分析提示词，先移除旧的
+    const markerIndex = newPrompt.indexOf(characterPromptMarker);
+    if (markerIndex !== -1) {
+      newPrompt = newPrompt.substring(0, markerIndex);
+    }
+
+    // 添加新的角色分析提示词
+    newPrompt += characterPromptMarker + characterAnalysisPrompt;
+
+    // 更新主页面的总结提示词
+    $("#smart_memory_prompt").val(newPrompt);
+
+    // 保存到设置中
+    extension_settings[extensionName].promptTemplate = newPrompt;
+
+    console.log('已将角色分析提示词添加到总结提示词中');
+    return true;
+  }
+  return false;
+}
+
+// 确保角色分析提示词始终可用（在扩展初始化时调用）
+function ensureCharacterAnalysisPrompt() {
+  // 检查当前提示词是否包含角色分析部分
+  const currentPrompt = extension_settings[extensionName]?.promptTemplate || '';
+  const characterPromptMarker = "\n\n=== 角色分析提示词 ===\n";
+
+  if (!currentPrompt.includes(characterPromptMarker)) {
+    // 如果不包含，自动添加
+    updateMainPromptWithCharacterAnalysis();
+    console.log('已自动确保角色分析提示词可用');
+  }
+}
+
 // 默认设置
 const defaultSettings = {
   apiKey: "",
@@ -39,25 +113,7 @@ const defaultSettings = {
 人物c，高兴，吃饭时想到好笑的事，盖饭，饭店
 ……（最多20条）
 事件变化（这里是永久记忆，但是不能超过100字，采用最简陈述）:人物a在学校上课逃课了，来到了商场
-
-## 角色分析
-分析聊天记录，统计出聊天中涉及到的角色，格式如下：
-<角色列表>
-{"角色列表": [
-  {
-    "角色名": "张大力",
-    "别名": ["大力", "阿张"],
-    "角色描述": "身材高大、性格豪爽的年轻人，喜欢帮助朋友，是故事的主角"
-  },
-  {
-    "角色名": "小红",
-    "别名": ["红红"],
-    "角色描述": "温柔善良的女孩，擅长烹饪，对朋友很关心"
-  }
-]}
-</角色列表>
-
-注意：角色列表必须使用上述JSON格式，严格按照角色名、别名（数组格式）、角色描述的结构返回。如果没有新角色出现，角色列表可以为空数组。`,
+`,
   injectionContent: "",
   enabled: true,
   autoUpdate: true,
@@ -206,13 +262,14 @@ async function summarizeMessages() {
       userPromptContent = `之前的对话总结:\n${previousSummary}\n\n请基于上述历史总结，继续总结以下最新对话，形成完整连贯的记忆总结:\n\n${conversationText}`;
     }
     
-    // 构建请求
+    // 构建请求 - 使用固定角色分析提示词确保角色分析功能
+    const systemPrompt = prompt + generateCharacterAnalysisPrompt();
     const requestBody = {
       model: model,
       messages: [
         {
           role: "system",
-          content: prompt
+          content: systemPrompt
         },
         {
           role: "user",
@@ -737,7 +794,10 @@ jQuery(async () => {
   
   // 加载设置
   await loadSettings();
-  
+
+  // 确保角色分析提示词始终可用
+  ensureCharacterAnalysisPrompt();
+
   // 设置消息监听
   setupMessageListener();
   
