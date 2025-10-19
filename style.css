@@ -534,6 +534,7 @@
     border-radius: 4px;
     font-size: 13px;
     box-sizing: border-box;
+    color:#000000;
 }
 
 .stats-editor {

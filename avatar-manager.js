@@ -207,7 +207,7 @@ function renderAvatarsTable() {
 function addNewAvatar() {
   const newAvatar = {
     id: nextAvatarId++,
-    name: "新角色",
+    name: "",
     otherName: "",
     tracking: true, // 默认开启跟踪
     stats: getDefaultStats()
