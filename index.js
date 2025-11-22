@@ -118,7 +118,9 @@ const defaultSettings = {
   injectionContent: "",
   enabled: true,
   autoUpdate: true,
-  updateInterval: 1
+  updateInterval: 1,
+  avatarManagerEnabled: true, // 角色管理开关
+  statsManagerEnabled: true, // 状态管理开关
 };
 
 // 加载设置
@@ -325,23 +327,32 @@ async function summarizeMessages() {
       console.log(`智能总结: 完整总结内容长度: ${summary.length} 字符`);
 
       // 首先解析和更新角色列表
-      console.log('智能总结: 开始解析角色列表...');
-      const characterListResult = parseAndUpdateCharacterList(summary);
-      summary = characterListResult.summary;
-      const addedCharactersCount = characterListResult.addedCount || 0;
-      console.log(`智能总结: 角色列表解析完成，添加了 ${addedCharactersCount} 个新角色`);
+      if (extension_settings[extensionName].avatarManagerEnabled) {
+        console.log('智能总结: 角色管理已启用，开始解析角色列表...');
+        const characterListResult = parseAndUpdateCharacterList(summary);
+        summary = characterListResult.summary;
+        const addedCharactersCount = characterListResult.addedCount || 0;
+        console.log(`智能总结: 角色列表解析完成，添加了 ${addedCharactersCount} 个新角色`);
 
-      // 更新角色发现状态
-      if (addedCharactersCount > 0) {
-        setDiscoveryStatusSuccess(addedCharactersCount);
-        toastr.success(`AI发现了 ${addedCharactersCount} 个新角色`, '角色发现');
+        // 更新角色发现状态
+        if (addedCharactersCount > 0) {
+          setDiscoveryStatusSuccess(addedCharactersCount);
+          toastr.success(`AI发现了 ${addedCharactersCount} 个新角色`, '角色发现');
+        } else {
+          // 即使没有新角色，也更新状态显示
+          setDiscoveryStatusSuccess(0);
+        }
       } else {
-        // 即使没有新角色，也更新状态显示
-        setDiscoveryStatusSuccess(0);
+        console.log('智能总结: 角色管理已禁用，跳过角色列表解析。');
       }
 
       // 然后解析和更新角色状态数据，并获取替换后的总结内容
-      summary = parseAndUpdateAvatarStats(summary);
+      if (extension_settings[extensionName].statsManagerEnabled) {
+        console.log('智能总结: 状态管理已启用，开始解析和更新角色状态...');
+        summary = parseAndUpdateAvatarStats(summary);
+      } else {
+        console.log('智能总结: 状态管理已禁用，跳过角色状态解析。');
+      }
 
       // 解析状态摘要数据
       console.log('智能总结: 开始解析状态摘要...');

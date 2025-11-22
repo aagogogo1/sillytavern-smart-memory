@@ -127,6 +127,15 @@ function initAvatarManager() {
   // 切换到当前聊天的数据
   switchToChatData(chatId);
 
+  // 加载并设置启用开关的状态
+  $("#avatar_manager_enabled").prop("checked", extension_settings[extensionName].avatarManagerEnabled !== false);
+  $("#avatar_manager_enabled").on("change", function() {
+    extension_settings[extensionName].avatarManagerEnabled = $(this).prop("checked");
+    saveSettingsDebounced();
+    console.log(`角色管理: 已${$(this).prop("checked") ? '启用' : '禁用'}`);
+    toastr.success(`角色管理已${$(this).prop("checked") ? '启用' : '禁用'}`);
+  });
+
   // 确保角色状态与当前配置同步
   syncAvatarStatsWithConfig();
 

@@ -124,6 +124,15 @@ function initStatManager() {
     updatePromptPreview: updatePromptPreview
   });
 
+  // 加载并设置启用开关的状态
+  $("#stats_manager_enabled").prop("checked", extension_settings[extensionName].statsManagerEnabled !== false);
+  $("#stats_manager_enabled").on("change", function() {
+    extension_settings[extensionName].statsManagerEnabled = $(this).prop("checked");
+    saveSettingsDebounced();
+    console.log(`状态管理: 已${$(this).prop("checked") ? '启用' : '禁用'}`);
+    toastr.success(`状态管理已${$(this).prop("checked") ? '启用' : '禁用'}`);
+  });
+
   renderStatsContainer();
   bindStatEvents();
   updatePromptPreview();
